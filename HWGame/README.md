@@ -16,6 +16,22 @@ Double-click `index.html` (or open it from a USB stick). It works offline from `
 2. The active component has a pulsing yellow border, and the top bar says what to do. Only that component's controls work. Anyone else who taps gets "Not your turn – it's the …'s turn".
 3. After 2 wrong attempts a **Hint** button appears. After 3, **Show answer** appears for the teacher. Mistakes are counted per role and shown only in the end-of-program summary.
 
+## The screen
+
+Panels are grouped by who operates them:
+
+- **Left column (CPU):** Control Unit, Program Counter, and Instruction Register with its Decoder. These three are one student in the 4-player preset.
+- **Right column (CPU), next to the buses:** Accumulator, MAR, MDR, and ALU. ALU input A comes from the ACC and input B from the MDR. MAR/MDR + ACC are one student in the 4- and 6-player presets.
+- Then the **address, data and control buses**, the **RAM wheel**, and along the bottom the **INPUT, OUTPUT and Storage** trays.
+
+Some design rules the game follows:
+
+- **The Control Unit has one big Go button.** It starts FETCH, starts EXECUTE after decoding, and authorises transfers (if "Go" is switched on in Settings). The current phase is shown at the top. When the CU has just acted itself, that press already counts, so it never presses Go twice in a row.
+- **ALU** is a single CU button, because the instruction (ADD or SUB) already decides the operation.
+- **HALT** stops both on `000` and on illegal codes. The Decoder's **ILLEGAL** choice is where students spot an illegal code.
+- **Only the MDR touches the data bus.** INP goes INPUT → data bus → MDR → ACC. OUT goes ACC → MDR → data bus → OUTPUT.
+- **N** next to the ACC is the **Negative flag**. It lights when a SUB result goes below zero (the ACC then shows the wrapped value, e.g. 995 for −5). LDA, ADD and INP switch it off, and BRZ/BRP read it. Hover over the lamp for the same explanation.
+
 ## Teacher controls
 
 **Hold ☰ (top right) for one second** to open the teacher menu. A short tap does nothing, so students can't open it by accident.

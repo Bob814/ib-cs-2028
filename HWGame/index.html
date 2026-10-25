@@ -37,6 +37,7 @@ body { -webkit-user-select: none; user-select: none; touch-action: manipulation;
 .grow { flex: 1 1 auto; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.grid5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .grid6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .span2 { grid-column: span 2; }
 
@@ -87,7 +88,7 @@ input.text, select, textarea {
 #menu-btn.holding #menu-prog { width: 100%; transition: width 1s linear; }
 
 /* chip and components */
-#chip { position: absolute; left: 20px; top: 112px; width: 880px; height: 712px; border: 3px solid #6aa98c; border-radius: 26px; background: rgba(5, 20, 14, .55); box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
+#chip { position: absolute; left: 20px; top: 112px; width: 1000px; height: 718px; border: 3px solid #6aa98c; border-radius: 26px; background: rgba(5, 20, 14, .55); box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
 #chip-label { position: absolute; left: 24px; top: -18px; background: var(--pcb); color: #cfe; font: 800 22px var(--sans); padding: 0 10px; letter-spacing: 3px; }
 .comp {
   position: absolute; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 6px 10px;
@@ -109,9 +110,16 @@ input.text, select, textarea {
 .col.tight { gap: 2px; }
 .col.left { width: 168px; flex: none; }
 .col.left.narrow { width: 140px; }
+.col.left.acc { width: 196px; }
+.irgrid, .mdrgrid, .accgrid { grid-auto-rows: 56px; margin-top: 10px; align-content: start; }
+.irgrid { flex: 0 0 200px; }
+#c-ir #ir-mn { white-space: nowrap; font-size: 21px; }
+.nbox { display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: help; }
+.ncap { font-size: 13px; color: var(--muted); }
+.alu-io { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 8px; }
+#c-ir #ir-mn { margin: 0 0 18px 4px; }
 .col.stack { gap: 6px; justify-content: center; }
-/* fixed 56px rows; the top margin keeps buttons clear of the badge tab */
-.mdrgrid, .accgrid { grid-auto-rows: 56px; margin-top: 10px; align-content: start; }
+/* .irgrid/.mdrgrid/.accgrid: fixed 56px rows; the top margin keeps buttons clear of the badge tab */
 .mdrgrid button, .accgrid button { font-size: 16px; padding: 2px 3px; }
 .row.fill > button.bottom { align-self: flex-end; }
 .ctitle.side { min-width: 54px; align-self: center; }
@@ -139,7 +147,9 @@ body.busy .comp.active button::after {
 .ovf:empty { display: none; }
 
 /* CU */
-.cu-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cu-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.cu-head .ctitle { justify-content: flex-start; gap: 14px; }
+#cu-grid .tall { grid-row: span 2; font-size: 22px; }
 #cu-phase { font-size: 21px; font-weight: 700; color: #ffe680; white-space: nowrap; }
 #cu-next { font-size: 17px; color: var(--muted); white-space: nowrap; }
 #cu-dec { font: 800 40px/1 var(--mono); color: #9fe8ff; min-height: 40px; white-space: nowrap; }
@@ -148,7 +158,10 @@ body.busy .comp.active button::after {
 /* ALU */
 #alu-ops { display: flex; gap: 6px; flex-wrap: wrap; }
 #alu-ops span { font: 700 14px var(--mono); padding: 2px 7px; border-radius: 6px; border: 1px dashed #4a6; color: #5f8574; cursor: help; }
-#alu-expr { display: flex; align-items: center; gap: 8px; font-size: 42px; font-weight: 800; }
+#c-alu { justify-content: space-evenly; }
+#alu-expr { display: flex; align-items: center; gap: 8px; font-size: 40px; font-weight: 800; }
+#alu-expr .slot { white-space: nowrap; }
+#alu-expr .slot small { font-size: 22px; color: #ff8a8a; margin-left: 4px; }
 #alu-expr .slot { padding: 0 6px; border-radius: 8px; background: #03100b; border: 2px solid #1d4a38; min-width: 2.2ch; text-align: center; }
 #alu-expr .aop { color: #ffb36b; }
 .ntoggle.on { background: var(--red); border-color: #fbb; }
@@ -178,7 +191,7 @@ body.busy .comp.active button::after {
 #c-ram { padding: 0; flex-direction: row; gap: 0; background: transparent; border: none; }
 #c-ram.active { animation: none; box-shadow: none; }
 #c-ram.active #wheel, #c-ram.active #ramctl { animation: pulse 1.3s ease-in-out infinite; border-color: var(--yellow); }
-#wheel { position: relative; width: 330px; height: 708px; overflow: hidden; border: 3px solid var(--line); border-radius: 14px; background: #0a1914; touch-action: none; cursor: ns-resize; }
+#wheel { position: relative; width: 280px; height: 708px; overflow: hidden; border: 3px solid var(--line); border-radius: 14px; background: #0a1914; touch-action: none; cursor: ns-resize; }
 #wheel-inner { position: absolute; inset: 0; }
 .cell { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #1f3a2f; }
 .cell .a { font: 600 22px var(--mono); color: #8aa; }
@@ -194,7 +207,7 @@ body.busy .comp.active button::after {
 #head.match #head-tag { background: var(--green); color: #000; }
 #wheel.bump { animation: bump .3s; }
 @keyframes bump { 30% { transform: translateY(14px); } 60% { transform: translateY(-6px); } }
-#ramctl { width: 150px; margin-left: 10px; display: flex; flex-direction: column; gap: 10px; padding: 8px; border: 3px solid var(--line); border-radius: 14px; background: var(--panel); }
+#ramctl { width: 146px; margin-left: 10px; display: flex; flex-direction: column; gap: 10px; padding: 8px; border: 3px solid var(--line); border-radius: 14px; background: var(--panel); }
 .wbtn { height: 96px; font-size: 40px; }
 .rambtn { height: 110px; font-size: 18px; }
 #clicks { margin-top: auto; text-align: center; display: flex; flex-direction: column; }
@@ -296,26 +309,58 @@ body.busy .comp.active button::after {
   <!-- CPU chip -->
   <div id="chip"><span id="chip-label">CPU</span></div>
 
+  <!-- left column: Control Unit, Program Counter, Instruction Register + Decoder -->
   <div class="comp" id="c-cu" data-comp="cu" data-l="cu">
-    <div class="ctitle"><span data-s="comps.cu"></span><span id="cu-next"></span><span class="badge" data-badge="cu"></span></div>
-    <div class="cu-status"><div id="cu-phase" class="mono"></div><div id="cu-dec" class="mono">—</div></div>
-    <div class="grid4" id="cu-grid">
-      <button data-act="cu.go" id="b-go"></button><button data-act="cu.read"></button><button data-act="cu.write"></button><button data-act="cu.next" id="b-next"></button>
-      <button data-act="cu.in"></button><button data-act="cu.out"></button><button data-act="cu.add"></button><button data-act="cu.sub"></button>
-      <button data-act="cu.taken"></button><button data-act="cu.nottaken"></button><button data-act="cu.halt"></button><button data-act="cu.illegal"></button>
+    <span class="badge" data-badge="cu"></span>
+    <div class="cu-head">
+      <div class="col tight"><div class="ctitle"><span data-s="comps.cu"></span><span id="cu-next"></span></div><div id="cu-phase" class="mono"></div></div>
+      <div id="cu-dec" class="mono">—</div>
+    </div>
+    <div class="grid5" id="cu-grid">
+      <button data-act="cu.next" id="b-next" class="tall"></button>
+      <button data-act="cu.read"></button><button data-act="cu.write"></button><button data-act="cu.in"></button><button data-act="cu.out"></button>
+      <button data-act="cu.alu"></button><button data-act="cu.taken"></button><button data-act="cu.nottaken"></button><button data-act="cu.halt"></button>
     </div>
   </div>
 
   <div class="comp" id="c-pc" data-comp="pc" data-l="pc">
     <span class="badge" data-badge="pc"></span>
+    <div class="ctitle"><span data-s="comps.pc"></span></div>
+    <div class="row">
+      <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
+      <button data-act="pc.toAddr" class="grow"></button>
+      <input class="num" id="in-pc" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="New PC value"><button data-act="pc.set"></button>
+    </div>
+  </div>
+
+  <div class="comp" id="c-ir" data-comp="ir" data-l="ir">
+    <span class="badge" data-badge="ir"></span>
     <div class="row fill">
-      <div class="col tight left">
-        <div class="ctitle wrap"><span data-s="comps.pc"></span></div>
-        <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
+      <div class="col tight">
+        <div class="ctitle"><span data-s="comps.ir"></span></div>
+        <div class="row tight"><div class="vbox"><div class="val v3" id="v-ir"><span id="ir-op">0</span><span class="irsep">|</span><span id="ir-opd">00</span></div><div class="was" id="w-ir"></div></div><div id="ir-mn" class="mono">?</div></div>
       </div>
-      <div class="col grow stack">
-        <button data-act="pc.toAddr"></button>
-        <div class="row"><input class="num" id="in-pc" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="New PC value"><button data-act="pc.set" class="grow"></button></div>
+      <div class="grid2 grow irgrid"><button data-act="ir.latch" class="span2"></button><button data-act="ir.toMar"></button><button data-act="ir.toPc"></button></div>
+    </div>
+    <div class="grid6" id="dec-grid"></div>
+    <div class="row"><label class="oplabel" for="in-dec" data-s="decOperand"></label><input class="num" id="in-dec" inputmode="numeric" maxlength="2" autocomplete="off"><button data-act="ir.decode" class="grow"></button></div>
+  </div>
+
+  <!-- right column (next to the buses): Accumulator, MAR, MDR, ALU -->
+  <div class="comp" id="c-acc" data-comp="acc" data-l="acc">
+    <span class="badge" data-badge="acc"></span>
+    <div class="row fill">
+      <div class="col tight left acc">
+        <div class="ctitle"><span data-s="comps.acc"></span></div>
+        <div class="row tight">
+          <div class="vbox"><div class="val v3" id="v-acc">000</div><div class="was" id="w-acc"></div></div>
+          <div class="nbox" id="n-box"><span class="lamp" id="n-lamp">N</span><span class="ncap" data-s="nCaption"></span></div>
+        </div>
+        <span class="ovf" id="ovf"></span>
+      </div>
+      <div class="grid2 grow accgrid">
+        <button data-act="acc.fromMdr"></button><button data-act="acc.toMdr"></button>
+        <button data-act="acc.toAlu"></button><button data-act="acc.latchResult"></button>
       </div>
     </div>
   </div>
@@ -340,42 +385,12 @@ body.busy .comp.active button::after {
     </div>
   </div>
 
-  <div class="comp" id="c-ir" data-comp="ir" data-l="ir">
-    <div class="ctitle"><span data-s="comps.ir"></span><span class="badge" data-badge="ir"></span></div>
-    <div class="row">
-      <div class="vbox"><div class="val v3" id="v-ir"><span id="ir-op">0</span><span class="irsep">|</span><span id="ir-opd">00</span></div><div id="ir-mn" class="mono">?</div><div class="was" id="w-ir"></div></div>
-      <div class="grid2 grow"><button data-act="ir.latch" class="span2"></button><button data-act="ir.toMar"></button><button data-act="ir.toPc"></button></div>
-    </div>
-  </div>
-
-  <div class="comp" id="c-acc" data-comp="acc" data-l="acc">
-    <span class="badge" data-badge="acc"></span>
-    <div class="row fill">
-      <div class="col tight left">
-        <div class="ctitle wrap"><span data-s="comps.acc"></span></div>
-        <div class="vbox"><div class="val v3" id="v-acc">000</div><div class="was" id="w-acc"></div></div>
-        <div class="row tight"><span class="lamp" id="n-lamp">N</span><span class="ovf" id="ovf"></span></div>
-      </div>
-      <div class="grid2 grow accgrid">
-        <button data-act="acc.fromMdr"></button><button data-act="acc.toMdr"></button>
-        <button data-act="acc.fromBus"></button><button data-act="acc.toAlu"></button>
-        <button data-act="acc.latchResult"></button><button data-act="acc.toOut"></button>
-      </div>
-    </div>
-  </div>
-
   <div class="comp" id="c-alu" data-comp="alu" data-l="alu">
-    <div class="ctitle"><span data-s="comps.alu"></span><span class="badge" data-badge="alu"></span></div>
+    <span class="badge" data-badge="alu"></span>
+    <div class="ctitle"><span><span data-s="comps.alu"></span> <span class="alu-io" data-s="aluIO"></span></span></div>
     <div id="alu-ops"></div>
     <div id="alu-expr" class="mono"><span id="v-aluA" class="slot">---</span><span id="v-aluOp" class="aop">?</span><span id="v-aluB" class="slot">---</span><span class="aop">=</span><span id="v-aluR" class="slot res">?</span></div>
     <div class="row"><input class="num n3" id="in-alu" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="ALU result"><button id="alu-n" data-act="alu.n" class="ntoggle"></button><button data-act="alu.compute" class="grow"></button></div>
-  </div>
-
-  <!-- decoder picker (part of IR) -->
-  <div class="comp" id="c-dec" data-comp="ir" data-l="dec">
-    <div class="ctitle"><span data-s="comps.dec"></span><span class="badge" data-badge="ir"></span></div>
-    <div class="grid6" id="dec-grid"></div>
-    <div class="row"><label class="oplabel" for="in-dec">Operand</label><input class="num" id="in-dec" inputmode="numeric" maxlength="2" autocomplete="off"><button data-act="ir.decode" class="grow"></button></div>
   </div>
 
   <!-- buses -->
@@ -517,7 +532,7 @@ const STRINGS = {
            RAM: 'RAM', ALU: 'ALU', ACC: 'Accumulator', IO: 'I/O' },
   roleShort: { CU: 'CU', PC: 'PC', IR: 'IR', MI: 'MAR/MDR', RAM: 'RAM', ALU: 'ALU', ACC: 'ACC', IO: 'I/O' },
   comps: { cu: 'Control Unit', pc: 'Program Counter (PC)', ir: 'Instruction Register (IR)',
-           dec: 'Decoder (part of IR)', mar: 'MAR', mdr: 'MDR', acc: 'Accumulator (ACC)',
+           dec: 'Decoder', mar: 'MAR', mdr: 'MDR', acc: 'Accumulator (ACC)',
            alu: 'ALU', ram: 'RAM', in: 'INPUT', out: 'OUTPUT', storage: 'Storage (disk)', cpu: 'CPU' },
   phases: { FETCH: 'FETCH', DECODE: 'DECODE', EXECUTE: 'EXECUTE', HALTED: 'HALTED' },
   stepOf: 'step {i}/{n}',
@@ -529,19 +544,23 @@ const STRINGS = {
   was: 'was {v}',
   overflow: 'overflow',
   nFlag: 'N',
+  nCaption: 'negative',
+  decOperand: 'Decoder · operand',
+  aluIO: 'A ← ACC · B ← MDR',
+  nTitle: 'N = Negative flag. It lights when a SUB result went below zero (the ACC then shows the wrapped value, e.g. 995 for −5). LDA, ADD and INP switch it off. BRZ and BRP look at it.',
   next: 'next: {who}',
   notInLmc: 'not in LMC',
   btn: {
-    'cu.go': 'Go', 'cu.read': 'READ', 'cu.write': 'WRITE', 'cu.in': 'IN', 'cu.out': 'OUT',
-    'cu.next': 'Next phase', cuStart: 'Start FETCH', cuNextInstr: 'Next instruction',
-    'cu.add': 'ALU +', 'cu.sub': 'ALU −', 'cu.taken': 'Branch taken', 'cu.nottaken': 'Not taken',
-    'cu.halt': 'HALT', 'cu.illegal': 'Illegal – halt',
+    'cu.read': 'READ', 'cu.write': 'WRITE', 'cu.in': 'IN', 'cu.out': 'OUT',
+    'cu.next': 'Go',
+    'cu.alu': 'ALU', 'cu.taken': 'Branch taken', 'cu.nottaken': 'Not taken',
+    'cu.halt': 'HALT',
     'pc.toAddr': 'Send to address bus', 'pc.set': 'Set',
     'ir.latch': 'Latch from MDR', 'ir.toMar': 'Operand → MAR', 'ir.toPc': 'Operand → PC', 'ir.decode': 'Decode ✓',
     'mar.latch': 'Latch address',
     'mdr.latch': 'Latch from data bus', 'mdr.toBus': 'Put on data bus', 'mdr.toAlu': 'Send to ALU B',
-    'acc.fromMdr': 'Latch from MDR', 'acc.fromBus': 'Latch from data bus', 'acc.latchResult': 'Latch result',
-    'acc.toMdr': 'Send to MDR', 'acc.toAlu': 'Send to ALU A', 'acc.toOut': 'Send to OUTPUT',
+    'acc.fromMdr': 'Latch from MDR', 'acc.latchResult': 'Latch ALU result',
+    'acc.toMdr': 'Send to MDR', 'acc.toAlu': 'Send to ALU A',
     'alu.compute': 'Compute', nOn: 'N on', nOff: 'N off',
     'ram.read': 'Place value on data bus', 'ram.write': 'Store value from data bus',
     'io.send': 'Send to data bus', 'io.print': 'Print', add: 'Add', load: 'Load',
@@ -549,7 +568,7 @@ const STRINGS = {
   },
   prompts: {
     go: 'Control Unit: press Go to start the next transfer ({who})',
-    F_START: 'Control Unit: start the FETCH phase',
+    F_START: 'Control Unit: press Go to start the FETCH phase',
     F_PC: 'Program Counter: send the PC to the address bus',
     MAR: 'Memory Interface: latch the address into the MAR',
     READ: 'Control Unit: put READ on the control bus',
@@ -558,7 +577,7 @@ const STRINGS = {
     F_IR: 'Instruction Register: latch the instruction from the MDR',
     F_INC: 'Program Counter: type PC + 1 and press Set',
     D_DEC: 'Decoder: pick the instruction name and type its operand',
-    D_NEXT: 'Control Unit: press Next phase to start EXECUTE',
+    D_NEXT: 'Control Unit: press Go to start EXECUTE',
     X_IRMAR: 'Instruction Register: send the operand to the MAR',
     LDA_ACC: 'Accumulator: latch the value from the MDR',
     STA_ACC: 'Accumulator: send the ACC to the MDR',
@@ -567,27 +586,26 @@ const STRINGS = {
     RAMWRITE: 'RAM: turn the wheel to the MAR address and store the value from the data bus',
     ACC_TOALU: 'Accumulator: send the ACC to ALU input A',
     MDR_TOALU: 'Memory Interface: send the MDR to ALU input B',
-    ALU_OP: 'Control Unit: select the ALU operation',
+    ALU_OP: 'Control Unit: tell the ALU to calculate',
     ALU_COMPUTE: 'ALU: type the result (switch N on if negative) and press Compute',
     ACC_RESULT: 'Accumulator: latch the ALU result',
     INP_IN: 'Control Unit: put IN on the control bus',
     INP_SEND: 'I/O: send the next INPUT number to the data bus',
-    INP_ACC: 'Accumulator: latch the value from the data bus',
     OUT_OUT: 'Control Unit: put OUT on the control bus',
-    OUT_SEND: 'Accumulator: send the ACC to OUTPUT',
+    OUT_BUS: 'Memory Interface: put the MDR value on the data bus for OUTPUT',
     OUT_PRINT: 'I/O: print the value from the data bus',
     BR_DECIDE: 'Control Unit: check ACC and the N lamp – is the branch taken?',
     BR_IRPC: 'Instruction Register: send the operand to the PC',
     BR_PCSET: 'Program Counter: type the branch target and press Set',
     HLT: 'Control Unit: press HALT',
-    ILLEGAL: 'Control Unit: this code is not an instruction – press Illegal – halt',
+    ILLEGAL: 'Control Unit: this code is not an instruction – press HALT',
     finished: 'Program finished',
     illegalStop: 'Machine stopped: illegal instruction',
     empty: 'Load a program from Storage to begin',
   },
   hints: {
     go: 'The Control Unit directs every transfer – press Go.',
-    F_START: 'Every instruction starts with FETCH. Press the Start / Next button.',
+    F_START: 'Every instruction starts with FETCH. Press Go.',
     F_PC: 'The address of the next instruction is in the PC ({pc}). Send it towards the MAR.',
     MAR: 'The MAR holds the address that goes on the address bus. Latch it.',
     READ: 'To get a value out of RAM the Control Unit sends READ.',
@@ -596,29 +614,28 @@ const STRINGS = {
     F_IR: 'The instruction is now in the MDR – copy it into the IR.',
     F_INC: 'The PC is {pc}. The next instruction is at {pc} + 1.',
     D_DEC: 'First digit {d} is the opcode – look it up in the table. The last two digits ({xx}) are the operand.',
-    D_NEXT: 'Decoding is done – move on to EXECUTE.',
+    D_NEXT: 'Decoding is done – press Go to move on to EXECUTE.',
     X_IRMAR: 'The operand {xx} is an address. Send it to the MAR.',
-    LDA_ACC: 'LDA copies the value in the MDR into the ACC.',
-    STA_ACC: 'STA stores the ACC – first copy the ACC into the MDR.',
+    LDA_ACC: 'Copy the value that is now in the MDR into the ACC.',
+    STA_ACC: 'Only the MDR talks to the data bus – first copy the ACC into the MDR.',
     STA_BUS: 'Put the MDR value on the data bus so RAM can store it.',
     WRITE: 'To store a value in RAM the Control Unit sends WRITE.',
     RAMWRITE: 'Turn the wheel to address {mar}, then store the value from the data bus.',
     ACC_TOALU: 'ALU input A comes from the ACC.',
     MDR_TOALU: 'ALU input B comes from the MDR.',
-    ALU_OP: 'The instruction is {mn}: choose the matching operation.',
+    ALU_OP: 'The instruction is {mn}: tell the ALU to calculate (it does {mn} because of the instruction).',
     ALU_COMPUTE: 'A = {a}, B = {b}, operation = {op}. Results wrap around at 1000; a negative SUB result also needs N on.',
     ACC_RESULT: 'The ALU result goes back into the ACC.',
     INP_IN: 'INP needs a number from the INPUT – signal IN.',
-    INP_SEND: 'Send the first number in the INPUT tray to the data bus.',
-    INP_ACC: 'The ACC latches the input value from the data bus.',
+    INP_SEND: 'Send the first number in the INPUT tray to the data bus – the MDR will pick it up.',
     OUT_OUT: 'OUT prints the ACC – signal OUT.',
-    OUT_SEND: 'Send the ACC value to the OUTPUT over the data bus.',
+    OUT_BUS: 'Only the MDR talks to the data bus – put its value there so the OUTPUT can print it.',
     OUT_PRINT: 'Print the value that is on the data bus.',
     BR_DECIDE: 'ACC = {acc}, N = {n}. BRZ branches if ACC = 0 and N is off; BRP branches if N is off.',
     BR_IRPC: 'The operand {xx} is the branch target. Send it to the PC.',
     BR_PCSET: 'Type the branch target that came from the IR.',
     HLT: '000 means stop.',
-    ILLEGAL: '{code} is not in the instruction table.',
+    ILLEGAL: '{code} is not in the instruction table – the machine must stop.',
   },
   answers: {
     press: 'Press “{label}”.',
@@ -797,7 +814,7 @@ const LMC = (() => {
       effect(s, p, ev) { s.alu = { a: s.acc, b: null, op: null, result: null, n: false, overflow: false }; tok(ev, 'acc-alua', pad3(s.acc)); } },
     MDR_TOALU: { id: 'MDR_TOALU', comp: 'mdr', role: 'MI', action: 'mdr.toAlu',
       effect(s, p, ev) { s.alu.b = s.mdr; tok(ev, 'mdr-alub', pad3(s.mdr)); } },
-    ALU_OP: { id: 'ALU_OP', comp: 'cu', role: 'CU', action: s => (s.decoded.mn === 'ADD' ? 'cu.add' : 'cu.sub'),
+    ALU_OP: { id: 'ALU_OP', comp: 'cu', role: 'CU', action: 'cu.alu',
       effect(s) { s.alu.op = s.decoded.mn === 'ADD' ? '+' : '−'; } },
     ALU_COMPUTE: { id: 'ALU_COMPUTE', comp: 'alu', role: 'ALU', action: 'alu.compute', pq: () => 'the ALU result', pa: s => pad3(s.alu.result) + (s.alu.n ? ' (N on)' : ''),
       expect: s => { const r = aluResult(s); return { value: pad3(r.value), n: r.n }; },
@@ -819,12 +836,10 @@ const LMC = (() => {
         const v = s.input.length ? s.input.shift() : num(p.value);
         s.bus.data = v; s.bus.dataDir = 'fromIO'; tok(ev, 'in-mdr', pad3(v), 'data');
       } },
-    INP_ACC: { id: 'INP_ACC', comp: 'acc', role: 'ACC', action: 'acc.fromBus', pq: () => 'ACC', pa: s => pad3(s.acc),
-      effect(s, p, ev) { s.mdr = s.bus.data; s.acc = s.bus.data; s.n = false; s.overflow = false; tok(ev, 'mdr-acc', pad3(s.acc)); } },
     OUT_OUT: { id: 'OUT_OUT', comp: 'cu', role: 'CU', action: 'cu.out',
       effect(s, p, ev) { s.bus.ctrl = 'OUT'; s.bus.ctrlDir = 'toIO'; tok(ev, 'cu-out', 'OUT', 'ctrl'); } },
-    OUT_SEND: { id: 'OUT_SEND', comp: 'acc', role: 'ACC', action: 'acc.toOut', go: true,
-      effect(s, p, ev) { s.bus.data = s.acc; s.bus.dataDir = 'toIO'; tok(ev, 'acc-out', pad3(s.acc), 'data'); } },
+    OUT_BUS: { id: 'OUT_BUS', comp: 'mdr', role: 'MI', action: 'mdr.toBus', go: true,
+      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toIO'; tok(ev, 'mdr-out', pad3(s.mdr), 'data'); } },
     OUT_PRINT: { id: 'OUT_PRINT', comp: 'out', role: 'IO', action: 'io.print', pq: () => 'the next OUTPUT', pa: s => pad3(s.output[s.output.length - 1]),
       effect(s, p, ev) { s.output.push(s.bus.data); ev.push({ type: 'print' }); } },
     BR_DECIDE: { id: 'BR_DECIDE', comp: 'cu', role: 'CU', action: s => (branchTaken(s) ? 'cu.taken' : 'cu.nottaken'),
@@ -838,7 +853,7 @@ const LMC = (() => {
       effect(s) { s.pc = s.path.value; s.path = null; } },
     HLT: { id: 'HLT', comp: 'cu', role: 'CU', action: 'cu.halt',
       effect(s, p, ev) { s.halted = true; s.phase = 'HALTED'; s.bus.ctrl = 'HALT'; s.bus.ctrlDir = null; s.count.instr++; ev.push({ type: 'halt' }); } },
-    ILLEGAL: { id: 'ILLEGAL', comp: 'cu', role: 'CU', action: 'cu.illegal',
+    ILLEGAL: { id: 'ILLEGAL', comp: 'cu', role: 'CU', action: 'cu.halt',
       effect(s, p, ev) {
         s.halted = true; s.phase = 'HALTED'; s.bus.ctrl = 'HALT'; s.bus.ctrlDir = null;
         s.haltMsg = fmt(S.msgs.illegal, { code: pad3(s.ir), addr: pad2(s.fetchAddr) }); ev.push({ type: 'halt', illegal: true });
@@ -853,8 +868,8 @@ const LMC = (() => {
     LDA: [...READ_SEQ, ST.LDA_ACC],
     STA: [ST.X_IRMAR, ST.MAR, ST.STA_ACC, ST.STA_BUS, ST.WRITE, ST.RAMWRITE],
     ADD: ARITH, SUB: ARITH,
-    INP: [ST.INP_IN, ST.INP_SEND, ST.INP_ACC],
-    OUT: [ST.OUT_OUT, ST.OUT_SEND, ST.OUT_PRINT],
+    INP: [ST.INP_IN, ST.INP_SEND, ST.MDR, ST.LDA_ACC],
+    OUT: [ST.OUT_OUT, ST.STA_ACC, ST.OUT_BUS, ST.OUT_PRINT],
     BRA: [ST.BR_IRPC, ST.BR_PCSET],
     BRZ: [ST.BR_DECIDE, taken(ST.BR_IRPC), taken(ST.BR_PCSET)],
     BRP: [ST.BR_DECIDE, taken(ST.BR_IRPC), taken(ST.BR_PCSET)],
@@ -896,20 +911,25 @@ const LMC = (() => {
     const req = { id: st.id, step: st, phase: s.phase, idx: s.stepNo + 1, total: list.length,
                   comp: st.comp, role: st.role, action, isGo: false, prompt: S.prompts[st.id] };
     if (st.go && opts.goGate !== false && !s.goDone) {
-      return { ...req, comp: 'cu', role: 'CU', action: 'cu.go', isGo: true, forRole: st.role,
+      return { ...req, comp: 'cu', role: 'CU', action: 'cu.next', isGo: true, forRole: st.role,
                prompt: fmt(S.prompts.go, { who: S.roles[st.role] }) };
     }
     return req;
   }
 
-  function advance(s) {
+  function advance(s, done) {
     if (s.halted) return;
     s.goDone = false; s.attempts = 0; s.stepNo++;
-    if (s.stepNo < stepList(s).length) return;
-    s.stepNo = 0;
-    if (s.phase === 'FETCH') s.phase = 'DECODE';
-    else if (s.phase === 'DECODE') s.phase = 'EXECUTE';
-    else if (s.phase === 'EXECUTE') { s.count.instr++; s.phase = 'FETCH'; s.branch = null; }
+    if (s.stepNo >= stepList(s).length) {
+      s.stepNo = 0;
+      if (s.phase === 'FETCH') s.phase = 'DECODE';
+      else if (s.phase === 'DECODE') s.phase = 'EXECUTE';
+      else if (s.phase === 'EXECUTE') { s.count.instr++; s.phase = 'FETCH'; s.branch = null; }
+    }
+    // If the CU itself just acted (Go, IN, …) it has already directed the machine,
+    // so the next transfer needs no separate Go press.
+    const next = stepList(s)[s.stepNo];
+    if (done && done.role === 'CU' && next && next.go) s.goDone = true;
   }
 
   // Try an action. Returns { ok, state, events, reason, msg, counted }.
@@ -944,7 +964,7 @@ const LMC = (() => {
     } else {
       req.step.effect(ns, payload, events);
       ns.count.micro++;
-      advance(ns);
+      advance(ns, req.step);
     }
     return { ok: true, state: ns, events, req };
   }
@@ -1002,19 +1022,15 @@ const LMC = (() => {
     if (!req) return '';
     const label = S.btn[req.action] || req.action;
     const A = S.answers;
-    if (req.isGo) return fmt(A.press, { label });
+    if (req.isGo) return fmt(A.press, { label: S.btn['cu.next'] });
     switch (req.action) {
       case 'pc.set': return fmt(A.pcSet, { v: pad2(req.step.expect(s)) });
       case 'ir.decode': { const e = req.step.expect(s); return fmt(e.op === '' ? A.decodeNoOp : A.decode, e); }
       case 'alu.compute': { const e = req.step.expect(s); return fmt(A.alu, { v: e.value, n: e.n ? 'on' : 'off' }); }
       case 'ram.read': case 'ram.write': return fmt(A.ram, { mar: pad2(s.mar), label });
       case 'io.send': return fmt(A.send, { label, v: s.input.length ? pad3(s.input[0]) : '?' });
-      default: return fmt(A.press, { label: req.action === 'cu.next' ? nextLabel(s) : label });
+      default: return fmt(A.press, { label });
     }
-  }
-  function nextLabel(s) {
-    if (s.phase === 'FETCH') return s.count.instr === 0 && !s.started ? S.btn.cuStart : S.btn.cuNextInstr;
-    return S.btn['cu.next'];
   }
 
   function phaseText(s, req, withDecoded = true) {
@@ -1211,6 +1227,21 @@ ONE   DAT 1` },
     });
     t('INP reads the INPUT tray and clears N', () => { const s = runSrc('INP\nHLT', [123]); eq(s.acc, 123); eq(s.n, false); eq(s.input, []); });
     t('OUT prints ACC', () => eq(runSrc('INP\nOUT\nOUT\nHLT', [9]).output, [9, 9]));
+    t('INP and OUT go through the MDR (only the MDR uses the data bus)', () => {
+      const ids = mn => EXEC[mn].map(st => st.id);
+      eq(ids('INP'), ['INP_IN', 'INP_SEND', 'MDR', 'LDA_ACC']);
+      eq(ids('OUT'), ['OUT_OUT', 'STA_ACC', 'OUT_BUS', 'OUT_PRINT']);
+      const accActions = new Set(Object.values(EXEC).flat().filter(st => st.comp === 'acc').map(st => st.action));
+      eq([...accActions].sort(), ['acc.fromMdr', 'acc.latchResult', 'acc.toAlu', 'acc.toMdr']);
+      let s = until(machine('INP\nHLT', [42]), x => current(x).id === 'LDA_ACC'); eq(s.mdr, 42); eq(s.acc, 0);
+      s = until(machine('INP\nOUT\nHLT', [7]), x => x.count.instr === 1 && current(x).id === 'OUT_PRINT'); eq(s.bus.data, 7); eq(s.bus.dataDir, 'toIO');
+    });
+    t('CU: one button for Go/Next, one ALU button, one HALT', () => {
+      const cuSteps = [...FETCH, ...DECODE, ...Object.values(EXEC).flat()].filter(st => st.comp === 'cu');
+      const fixed = new Set(cuSteps.filter(st => typeof st.action === 'string').map(st => st.action));
+      eq([...fixed].sort(), ['cu.alu', 'cu.halt', 'cu.in', 'cu.next', 'cu.out', 'cu.read', 'cu.write']);
+      eq(cuSteps.filter(st => typeof st.action === 'function').map(st => st.id), ['BR_DECIDE', 'BR_DECIDE']);
+    });
     t('BRA jumps', () => eq(runSrc('BRA 3\nOUT\nHLT\nINP\nOUT\nHLT', [4]).output, [4]));
     t('BRZ: taken on 0 with N off, not taken otherwise', () => {
       const p = 'INP\nBRZ 4\nOUT\nHLT\nHLT';
@@ -1225,8 +1256,8 @@ ONE   DAT 1` },
     t('HLT halts with HALT on the control bus', () => { const s = runSrc('HLT', []); ok(s.halted); eq(s.bus.ctrl, 'HALT'); ok(!s.haltMsg); });
     t('illegal 4xx halts with a message', () => {
       let s = machine('DAT 405'); s = until(s, x => current(x) && current(x).id === 'ILLEGAL');
-      const r = act(s, 'cu.halt', null); eq(r.reason, 'wrong');
-      s = run(s).state; ok(s.halted); ok(/405/.test(s.haltMsg));
+      eq(act(s, 'cu.read', null).reason, 'wrong');
+      s = act(s, 'cu.halt', null).state; ok(s.halted); ok(/405/.test(s.haltMsg)); eq(s.bus.ctrl, 'HALT');
     });
     t('illegal 0xx (not 000) and 9xx', () => { ok(run(machine('DAT 7')).state.haltMsg); ok(run(machine('DAT 903')).state.haltMsg); });
 
@@ -1252,11 +1283,24 @@ ONE   DAT 1` },
       const s = machine(SAMPLES[0].src); const r = act(s, 'cu.read', null);
       eq(r.reason, 'wrong'); eq(r.state.errors.CU, 1); eq(r.state.stepNo, 0); eq(r.state.attempts, 1);
     });
-    t('Go gating: PC needs CU Go first', () => {
+    t('Go gating: one CU press, never two in a row', () => {
+      // Go at the start of FETCH also authorises the PC transfer: PC is next, no second press.
       let s = act(machine(SAMPLES[0].src), 'cu.next', null).state;
-      eq(current(s).action, 'cu.go'); eq(act(s, 'pc.toAddr', null).reason, 'notTurn');
-      s = act(s, 'cu.go', null).state; eq(current(s).action, 'pc.toAddr');
+      eq(current(s).action, 'pc.toAddr');
+      // STA: after the ACC acts, the CU must press Go before the MDR drives the data bus.
+      s = until(machine('LDA 3\nSTA 4\nHLT\nDAT 9\nDAT 0'), x => x.count.instr === 1 && current(x).id === 'STA_BUS');
+      ok(current(s).isGo); eq(current(s).action, 'cu.next');
+      eq(act(s, 'mdr.toBus', null).reason, 'notTurn'); eq(act(s, 'cu.read', null).reason, 'wrong');
+      s = act(s, 'cu.next', null).state; eq(current(s).action, 'mdr.toBus');
+      // With gating off the PC follows the CU in both cases too.
       eq(current(machine('HLT'), { goGate: false }).action, 'cu.next');
+      // Whole warm-up: the CU never has to act twice in a row.
+      let m = machine(SAMPLES[0].src), prev = null, guard = 0;
+      while (!m.halted && guard++ < 500) {
+        const r = current(m);
+        if (r.comp === 'cu' && prev === 'cu' && r.action === 'cu.next') throw new Error('double CU Go at ' + r.id);
+        prev = r.comp; m = autoStep(m).state;
+      }
     });
     t('PC+1 validated exactly', () => {
       let s = until(machine(SAMPLES[0].src), x => current(x).id === 'F_INC');
@@ -1317,7 +1361,7 @@ ONE   DAT 1` },
   }
 
   return { STRINGS: S, fmt, pad2, pad3, clone, decode, decodedText, num, newMachine, load, reset, current, act, wheel,
-           autoStep, run, expectedPayload, addInput, removeInput, poke, hint, answer, nextLabel, phaseText, assemble, SAMPLES, MNEMONICS,
+           autoStep, run, expectedPayload, addInput, removeInput, poke, hint, answer, phaseText, assemble, SAMPLES, MNEMONICS,
            DECODE_NAMES, NEED_INPUT, compOf, runTests, stepList, EXEC, FETCH, DECODE };
 })();
 if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
@@ -1337,13 +1381,18 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
 
   /* ---------------- layout (stage pixels, 1920×1080) ---------------- */
   const L = {
-    cu: [40, 140, 440, 276], ir: [40, 426, 440, 168], acc: [40, 604, 440, 208],
-    pc: [500, 140, 380, 146], mar: [500, 298, 380, 112], mdr: [500, 422, 380, 158], alu: [500, 592, 380, 218],
-    dec: [912, 112, 494, 250], msg: [960, 604, 446, 216], ram: [1416, 112, 494, 708],
+    // left column – the CU, PC and IR (one student in the 4-player preset)
+    cu: [40, 136, 520, 188], pc: [40, 336, 520, 132], ir: [40, 480, 520, 340],
+    // right column, beside the buses – ACC, MAR, MDR, ALU (MI + ACC are one student in the 4/6-player presets).
+    // MAR must cover the address lane and MDR the data lane; both lanes must hit the RAM head window (y 340–592).
+    acc: [580, 136, 420, 152], mar: [580, 300, 420, 100], mdr: [580, 412, 420, 148], alu: [580, 572, 420, 248],
+    msg: [1036, 112, 420, 208], ram: [1470, 112, 436, 708],
     input: [20, 850, 580, 220], output: [620, 850, 580, 220], storage: [1220, 850, 690, 220],
   };
-  const LANE = { addr: 400, data: 470, ctrl: 540 }, BX0 = 900, BX1 = 1416, CH = 490, GAP = 586;
-  const DATA_BR = 915, CTRL_BR = 940, DATA_H = 832, CTRL_H = 842;
+  // BX0/BX1: bus lane ends (chip edge, RAM wheel). PIN: x where wires leave the chip.
+  // CH: vertical channel between the two CPU columns. GAP: horizontal gap between MDR and ALU.
+  const LANE = { addr: 365, data: 455, ctrl: 545 }, BX0 = 1020, BX1 = 1470, PIN = 1010, CH = 570, GAP = 566;
+  const DATA_BR = 1035, CTRL_BR = 1060, DATA_H = 836, CTRL_H = 844;
   const CELL_Y = [0, 114, 228, 480, 594], CELL_H = [114, 114, 252, 114, 114];
 
   const ROLES = ['CU', 'PC', 'IR', 'MI', 'RAM', 'ALU', 'ACC', 'IO'];
@@ -1392,13 +1441,13 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   /* ---------------- paths (for tokens and wires) ---------------- */
   const A = anchor;
   const viaCh = (a, b) => [a, [CH, a[1]], [CH, b[1]], b];
-  const cuOut = () => { const c = A('cu-dec'); return [c, [CH, c[1]], [CH, GAP], [890, GAP], [890, LANE.ctrl]]; };
+  const cuOut = () => { const c = A('cu-dec'); return [c, [CH, c[1]], [CH, GAP], [PIN, GAP], [PIN, LANE.ctrl]]; };
   const PATHS = {
-    'pc-mar': () => [A('v-pc'), A('v-mar')],
-    'mar-ram': () => { const m = A('v-mar'); return [m, [890, m[1]], [890, LANE.addr], [BX1, LANE.addr]]; },
+    'pc-mar': () => viaCh(A('v-pc'), A('v-mar')),
+    'mar-ram': () => { const m = A('v-mar'); return [m, [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]]; },
     'cu-ram': () => [...cuOut(), [BX1, LANE.ctrl]],
     'ram-cu': () => PATHS['cu-ram']().reverse(),
-    'ram-mdr': () => [[BX1, LANE.data], [890, LANE.data], A('v-mdr')],
+    'ram-mdr': () => [[BX1, LANE.data], [PIN, LANE.data], A('v-mdr')],
     'mdr-ram': () => PATHS['ram-mdr']().reverse(),
     'mdr-ir': () => viaCh(A('v-mdr'), A('v-ir')),
     'ir-mar': () => viaCh(A('v-ir'), A('v-mar')),
@@ -1410,8 +1459,8 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     'alu-acc': () => { const r = A('v-aluR'), a = A('v-acc'); return [r, [r[0], GAP], [CH, GAP], [CH, a[1]], a]; },
     'cu-in': () => { const t = A('in-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
     'cu-out': () => { const t = A('out-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
-    'in-mdr': () => { const t = A('in-tray'); return [t, [t[0], DATA_H], [DATA_BR, DATA_H], [DATA_BR, LANE.data], [890, LANE.data], A('v-mdr')]; },
-    'acc-out': () => { const a = A('v-acc'), t = A('out-tray'); return [a, [CH, a[1]], [CH, GAP], [890, GAP], [890, LANE.data], [DATA_BR, LANE.data], [DATA_BR, DATA_H], [t[0], DATA_H], t]; },
+    'in-mdr': () => { const t = A('in-tray'); return [t, [t[0], DATA_H], [DATA_BR, DATA_H], [DATA_BR, LANE.data], [PIN, LANE.data], A('v-mdr')]; },
+    'mdr-out': () => { const m = A('v-mdr'), t = A('out-tray'); return [m, [PIN, m[1]], [PIN, LANE.data], [DATA_BR, LANE.data], [DATA_BR, DATA_H], [t[0], DATA_H], t]; },
   };
 
   /* ---------------- static build ---------------- */
@@ -1425,6 +1474,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     $('dec-grid').innerHTML = LMC.DECODE_NAMES.map(m => `<button data-mn="${m}">${m}</button>`).join('');
     $('alu-ops').innerHTML = ['MUL', 'DIV', 'AND', 'OR', 'XOR', 'NOT'].map(o => `<span title="${S.notInLmc}">${o}</span>`).join('');
     $('head-tag').textContent = S.headLabel;
+    $('n-box').title = S.nTitle;
     buildBuses();
     buildStorage();
   }
@@ -1433,14 +1483,14 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     const b = $('buses');
     const mid = (BX0 + BX1) / 2 + 20;
     let h = '';
-    h += `<div class="lane-tag" style="left:960px;top:${LANE.addr - 36}px;color:var(--addr)">${S.buses.addr}</div>`;
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.addr - 36}px;color:var(--addr)">${S.buses.addr}</div>`;
     h += `<div class="lane-val" id="bus-addr" style="left:${mid}px;top:${LANE.addr}px;color:var(--addr);border-color:var(--addr)">––</div>`;
     h += `<div class="lane-dir" id="dir-addr" style="left:${BX1 - 18}px;top:${LANE.addr}px;color:var(--addr)">▶</div>`;
-    h += `<div class="lane-tag" style="left:960px;top:${LANE.data - 36}px;color:var(--data)">${S.buses.data}</div>`;
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.data - 36}px;color:var(--data)">${S.buses.data}</div>`;
     h += `<div class="lane-val" id="bus-data" style="left:${mid}px;top:${LANE.data}px;color:var(--data);border-color:var(--data)">––</div>`;
     h += `<div class="lane-dir" id="dir-data" style="left:${BX1 - 18}px;top:${LANE.data}px;color:var(--data)"></div>`;
-    h += `<div class="lane-tag" style="left:960px;top:${LANE.ctrl - 38}px;color:var(--ctrl)">${S.buses.ctrl}</div>`;
-    S.signals.forEach((w, i) => { h += `<div class="ctrl-word" data-sig="${w}" style="left:${1000 + i * 72}px;top:${LANE.ctrl}px">${w}</div>`; });
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.ctrl - 38}px;color:var(--ctrl)">${S.buses.ctrl}</div>`;
+    S.signals.forEach((w, i) => { h += `<div class="ctrl-word" data-sig="${w}" style="left:${BX0 + 100 + i * 62}px;top:${LANE.ctrl}px">${w}</div>`; });
     h += `<div class="lane-dir" id="dir-ctrl" style="left:${BX1 - 18}px;top:${LANE.ctrl}px;color:var(--ctrl)"></div>`;
     h += `<div class="lane-dir" id="dir-iodata" style="left:${DATA_BR - 2}px;top:790px;color:var(--data)"></div>`;
     h += `<div class="lane-dir" id="dir-ioctrl" style="left:${CTRL_BR + 26}px;top:790px;color:var(--ctrl)"></div>`;
@@ -1453,9 +1503,9 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     let h = '';
     ['mdr-ir', 'ir-mar', 'ir-pc', 'mdr-acc', 'acc-alua', 'mdr-alub', 'alu-acc', 'pc-mar'].forEach(p => { h += line(PATHS[p](), 'int'); });
     const m = A('v-mar'), c = A('cu-dec');
-    h += line([[880, m[1]], [890, m[1]], [890, LANE.addr], [BX1, LANE.addr]], 'addr');
-    h += line([[880, LANE.data], [BX1, LANE.data]], 'data');
-    h += line([[480, c[1]], [CH, c[1]], [CH, GAP], [890, GAP], [890, LANE.ctrl], [BX1, LANE.ctrl]], 'ctrl');
+    h += line([[L.mar[0] + L.mar[2], m[1]], [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]], 'addr');
+    h += line([[L.mdr[0] + L.mdr[2], LANE.data], [BX1, LANE.data]], 'data');
+    h += line([[L.cu[0] + L.cu[2], c[1]], [CH, c[1]], [CH, GAP], [PIN, GAP], [PIN, LANE.ctrl], [BX1, LANE.ctrl]], 'ctrl');
     const ti = A('in-tray');
     h += line([[DATA_BR, LANE.data], [DATA_BR, 850]], 'data br');
     h += line([[DATA_BR, DATA_H], [ti[0] - 20, DATA_H], [ti[0] - 20, 850]], 'data br');
@@ -1528,8 +1578,6 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     $('cu-phase').title = M.loaded ? LMC.phaseText(M, req) : '';
     $('cu-next').textContent = req ? F(S.next, { who: S.roleShort[req.isGo ? req.forRole : req.role] }) : '';
     $('cu-dec').textContent = M.decoded ? LMC.decodedText(M.decoded) : '—';
-    $('b-next').textContent = LMC.nextLabel(M);
-    $('b-go').classList.toggle('invisible', !settings.goGate);
 
     // registers
     setVal('pc', p2(M.pc)); setVal('mar', p2(M.mar)); setVal('mdr', p3(M.mdr)); setVal('acc', p3(M.acc));
@@ -1542,6 +1590,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     setVal('aluB', M.alu.b == null ? '---' : p3(M.alu.b));
     $('v-aluOp').textContent = M.alu.op || '?';
     setVal('aluR', M.alu.result == null ? '?' : p3(M.alu.result) + (M.alu.n ? ' N' : ''));
+    if (M.alu.n && M.alu.result != null) $('v-aluR').innerHTML = `${p3(M.alu.result)}<small>N</small>`;
     const nb = $('alu-n'); nb.textContent = aluN ? S.btn.nOn : S.btn.nOff; nb.classList.toggle('on', aluN);
     $$('#dec-grid button').forEach(b => b.classList.toggle('sel', b.dataset.mn === selMn));
 
@@ -1552,12 +1601,12 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     $('bus-data').textContent = p3(bus.data); $('bus-data').classList.toggle('glow', bus.data != null);
     const dd = bus.dataDir;
     const dAr = $('dir-data'); dAr.textContent = dd === 'toRam' ? '▶' : dd === 'toCpu' ? '◀' : dd ? '◀' : '';
-    dAr.style.left = (dd === 'toRam' ? BX1 - 18 : BX0 + 34) + 'px';
+    dAr.style.left = (dd === 'toRam' ? BX1 - 18 : BX0 + 62) + 'px';
     $('dir-iodata').textContent = dd === 'toIO' ? '▼' : dd === 'fromIO' ? '▲' : '';
     $$('.ctrl-word').forEach(w => w.classList.toggle('on', w.dataset.sig === bus.ctrl));
     const cd = bus.ctrlDir, cAr = $('dir-ctrl');
     cAr.textContent = cd === 'toRam' ? '▶' : cd === 'toCpu' ? '◀' : '';
-    cAr.style.left = (cd === 'toRam' ? BX1 - 18 : BX0 + 34) + 'px';
+    cAr.style.left = (cd === 'toRam' ? BX1 - 18 : BX0 + 62) + 'px';
     $('dir-ioctrl').textContent = cd === 'toIO' ? '▼' : '';
 
     renderWheel();
@@ -1609,7 +1658,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
 
   /* ---------------- feedback ---------------- */
   function showMsg(text, kind = 'info') { const m = $('msg'); m.textContent = text; m.className = kind; }
-  function compEls(comp) { return comp === 'ir' ? [$('c-ir'), $('c-dec')] : [$$(`.comp[data-comp="${comp}"]`)[0]].filter(Boolean); }
+  function compEls(comp) { return [$$(`.comp[data-comp="${comp}"]`)[0]].filter(Boolean); }
   function pulseClass(comp, cls, ms) { compEls(comp).forEach(el => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); }); }
   const shake = comp => pulseClass(comp, 'shake', 450);
   function notTurn(comp, req) {
