@@ -328,7 +328,7 @@ body.busy .comp.active button::after {
     <div class="ctitle"><span data-s="comps.pc"></span></div>
     <div class="row">
       <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
-      <button data-act="pc.toAddr" class="grow"></button>
+      <button data-act="pc.toMar" class="grow"></button>
       <input class="num" id="in-pc" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="New PC value"><button data-act="pc.set"></button>
     </div>
   </div>
@@ -370,7 +370,7 @@ body.busy .comp.active button::after {
     <div class="row fill">
       <div class="ctitle side"><span data-s="comps.mar"></span></div>
       <div class="vbox"><div class="val v2" id="v-mar">00</div><div class="was" id="w-mar"></div></div>
-      <button data-act="mar.latch" class="grow bottom"></button>
+      <button data-act="mar.toBus" class="grow bottom"></button>
     </div>
   </div>
 
@@ -555,9 +555,9 @@ const STRINGS = {
     'cu.next': 'Go',
     'cu.alu': 'ALU', 'cu.taken': 'Branch taken', 'cu.nottaken': 'Not taken',
     'cu.halt': 'HALT',
-    'pc.toAddr': 'Send to address bus', 'pc.set': 'Set',
+    'pc.toMar': 'Send to MAR', 'pc.set': 'Set',
     'ir.latch': 'Latch from MDR', 'ir.toMar': 'Operand → MAR', 'ir.toPc': 'Operand → PC', 'ir.decode': 'Decode ✓',
-    'mar.latch': 'Latch address',
+    'mar.toBus': 'Put on address bus',
     'mdr.latch': 'Latch from data bus', 'mdr.toBus': 'Put on data bus', 'mdr.toAlu': 'Send to ALU B',
     'acc.fromMdr': 'Latch from MDR', 'acc.latchResult': 'Latch ALU result',
     'acc.toMdr': 'Send to MDR', 'acc.toAlu': 'Send to ALU A',
@@ -569,8 +569,8 @@ const STRINGS = {
   prompts: {
     go: 'Control Unit: press Go to start the next transfer ({who})',
     F_START: 'Control Unit: press Go to start the FETCH phase',
-    F_PC: 'Program Counter: send the PC to the address bus',
-    MAR: 'Memory Interface: latch the address into the MAR',
+    F_PC: 'Program Counter: send the PC to the MAR',
+    MAR: 'Memory Interface: put the MAR address on the address bus',
     READ: 'Control Unit: put READ on the control bus',
     RAMREAD: 'RAM: turn the wheel to the MAR address and place the value on the data bus',
     MDR: 'Memory Interface: latch the value from the data bus into the MDR',
@@ -596,7 +596,7 @@ const STRINGS = {
     OUT_PRINT: 'I/O: print the value from the data bus',
     BR_DECIDE: 'Control Unit: check ACC and the N lamp – is the branch taken?',
     BR_IRPC: 'Instruction Register: send the operand to the PC',
-    BR_PCSET: 'Program Counter: type the branch target and press Set',
+    BR_PCSET: 'Program Counter: check the branch target from the IR and press Set',
     HLT: 'Control Unit: press HALT',
     ILLEGAL: 'Control Unit: this code is not an instruction – press HALT',
     finished: 'Program finished',
@@ -606,8 +606,8 @@ const STRINGS = {
   hints: {
     go: 'The Control Unit directs every transfer – press Go.',
     F_START: 'Every instruction starts with FETCH. Press Go.',
-    F_PC: 'The address of the next instruction is in the PC ({pc}). Send it towards the MAR.',
-    MAR: 'The MAR holds the address that goes on the address bus. Latch it.',
+    F_PC: 'The address of the next instruction is in the PC ({pc}). Send it to the MAR.',
+    MAR: 'The MAR now holds the address ({mar}). Put it on the address bus so RAM can see it.',
     READ: 'To get a value out of RAM the Control Unit sends READ.',
     RAMREAD: 'Turn the wheel to address {mar} (the head turns green), then place the value on the data bus.',
     MDR: 'Values that arrive on the data bus are latched into the MDR.',
@@ -633,7 +633,7 @@ const STRINGS = {
     OUT_PRINT: 'Print the value that is on the data bus.',
     BR_DECIDE: 'ACC = {acc}, N = {n}. BRZ branches if ACC = 0 and N is off; BRP branches if N is off.',
     BR_IRPC: 'The operand {xx} is the branch target. Send it to the PC.',
-    BR_PCSET: 'Type the branch target that came from the IR.',
+    BR_PCSET: 'The IR delivered {xx} into your box. That is the new PC – press Set.',
     HLT: '000 means stop.',
     ILLEGAL: '{code} is not in the instruction table – the machine must stop.',
   },
@@ -763,19 +763,19 @@ const LMC = (() => {
   const ST = {
     F_START: { id: 'F_START', comp: 'cu', role: 'CU', action: 'cu.next',
       effect(s) { s.started = true; s.path = null; } },
-    F_PC: { id: 'F_PC', comp: 'pc', role: 'PC', action: 'pc.toAddr', go: true,
-      effect(s, p, ev) { s.fetchAddr = s.pc; s.path = { from: 'pc', to: 'mar', value: s.pc }; tok(ev, 'pc-mar', pad2(s.pc)); } },
-    MAR: { id: 'MAR', comp: 'mar', role: 'MI', action: 'mar.latch', pq: () => 'MAR', pa: s => pad2(s.mar),
-      effect(s, p, ev) { s.mar = s.path.value; s.path = null; s.bus.addr = s.mar; s.bus.addrDir = 'toRam'; tok(ev, 'mar-ram', pad2(s.mar), 'addr'); } },
+    F_PC: { id: 'F_PC', comp: 'pc', role: 'PC', action: 'pc.toMar', go: true, pq: () => 'MAR', pa: s => pad2(s.mar),
+      effect(s, p, ev) { s.fetchAddr = s.pc; s.mar = s.pc; tok(ev, 'pc-mar', pad2(s.pc)); } },
+    MAR: { id: 'MAR', comp: 'mar', role: 'MI', action: 'mar.toBus', pq: () => 'the address bus', pa: s => pad2(s.bus.addr),
+      effect(s, p, ev) { s.bus.addr = s.mar; s.bus.addrDir = 'toRam'; tok(ev, 'mar-ram', pad2(s.mar), 'addr'); } },
     READ: { id: 'READ', comp: 'cu', role: 'CU', action: 'cu.read',
       effect(s, p, ev) { s.bus.ctrl = 'READ'; s.bus.ctrlDir = 'toRam'; tok(ev, 'cu-ram', 'READ', 'ctrl'); } },
     RAMREAD: { id: 'RAMREAD', comp: 'ram', role: 'RAM', action: 'ram.read', pq: () => 'the data bus', pa: s => pad3(s.bus.data),
       effect(s, p, ev) {
-        s.bus.data = s.ram[s.mar]; s.bus.dataDir = 'toCpu'; tok(ev, 'ram-mdr', pad3(s.bus.data), 'data');
+        s.bus.data = s.ram[s.mar]; s.bus.dataDir = 'toCpu'; tok(ev, 'ram-bus', pad3(s.bus.data), 'data');
         s.bus.ctrl = 'ACK'; s.bus.ctrlDir = 'toCpu'; tok(ev, 'ram-cu', 'ACK', 'ctrl');
       } },
     MDR: { id: 'MDR', comp: 'mdr', role: 'MI', action: 'mdr.latch', pq: () => 'MDR', pa: s => pad3(s.mdr),
-      effect(s) { s.mdr = s.bus.data; } },
+      effect(s, p, ev) { s.mdr = s.bus.data; tok(ev, s.bus.dataDir === 'fromIO' ? 'iobus-mdr' : 'bus-mdr', pad3(s.mdr), 'data'); } },
     F_IR: { id: 'F_IR', comp: 'ir', role: 'IR', action: 'ir.latch', pq: () => 'IR', pa: s => pad3(s.ir),
       effect(s, p, ev) { s.ir = s.mdr; s.decoded = null; tok(ev, 'mdr-ir', pad3(s.mdr)); } },
     F_INC: { id: 'F_INC', comp: 'pc', role: 'PC', action: 'pc.set', pq: () => 'PC', pa: s => pad2(s.pc),
@@ -795,19 +795,19 @@ const LMC = (() => {
       },
       effect(s) { s.decoded = decode(s.ir); } },
     D_NEXT: { id: 'D_NEXT', comp: 'cu', role: 'CU', action: 'cu.next', effect() {} },
-    X_IRMAR: { id: 'X_IRMAR', comp: 'ir', role: 'IR', action: 'ir.toMar', go: true,
-      effect(s, p, ev) { s.path = { from: 'ir', to: 'mar', value: s.ir % 100 }; tok(ev, 'ir-mar', pad2(s.ir % 100)); } },
+    X_IRMAR: { id: 'X_IRMAR', comp: 'ir', role: 'IR', action: 'ir.toMar', go: true, pq: () => 'MAR', pa: s => pad2(s.mar),
+      effect(s, p, ev) { s.mar = s.ir % 100; tok(ev, 'ir-mar', pad2(s.mar)); } },
     LDA_ACC: { id: 'LDA_ACC', comp: 'acc', role: 'ACC', action: 'acc.fromMdr', pq: () => 'ACC', pa: s => pad3(s.acc),
       effect(s, p, ev) { s.acc = s.mdr; s.n = false; s.overflow = false; tok(ev, 'mdr-acc', pad3(s.mdr)); } },
     STA_ACC: { id: 'STA_ACC', comp: 'acc', role: 'ACC', action: 'acc.toMdr', pq: () => 'MDR', pa: s => pad3(s.mdr),
       effect(s, p, ev) { s.mdr = s.acc; tok(ev, 'acc-mdr', pad3(s.acc)); } },
     STA_BUS: { id: 'STA_BUS', comp: 'mdr', role: 'MI', action: 'mdr.toBus', go: true,
-      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toRam'; tok(ev, 'mdr-ram', pad3(s.mdr), 'data'); } },
+      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toRam'; tok(ev, 'mdr-bus', pad3(s.mdr), 'data'); } },
     WRITE: { id: 'WRITE', comp: 'cu', role: 'CU', action: 'cu.write',
       effect(s, p, ev) { s.bus.ctrl = 'WRITE'; s.bus.ctrlDir = 'toRam'; tok(ev, 'cu-ram', 'WRITE', 'ctrl'); } },
     RAMWRITE: { id: 'RAMWRITE', comp: 'ram', role: 'RAM', action: 'ram.write', pq: s => `RAM[${pad2(s.mar)}]`, pa: s => pad3(s.ram[s.mar]),
       effect(s, p, ev) {
-        s.ram[s.mar] = s.bus.data; s.lastWritten = s.mar; ev.push({ type: 'flash', addr: s.mar });
+        s.ram[s.mar] = s.bus.data; s.lastWritten = s.mar; tok(ev, 'bus-ram', pad3(s.bus.data), 'data'); ev.push({ type: 'flash', addr: s.mar });
         s.bus.ctrl = 'ACK'; s.bus.ctrlDir = 'toCpu'; tok(ev, 'ram-cu', 'ACK', 'ctrl');
       } },
     ACC_TOALU: { id: 'ACC_TOALU', comp: 'acc', role: 'ACC', action: 'acc.toAlu',
@@ -815,7 +815,7 @@ const LMC = (() => {
     MDR_TOALU: { id: 'MDR_TOALU', comp: 'mdr', role: 'MI', action: 'mdr.toAlu',
       effect(s, p, ev) { s.alu.b = s.mdr; tok(ev, 'mdr-alub', pad3(s.mdr)); } },
     ALU_OP: { id: 'ALU_OP', comp: 'cu', role: 'CU', action: 'cu.alu',
-      effect(s) { s.alu.op = s.decoded.mn === 'ADD' ? '+' : '−'; } },
+      effect(s, p, ev) { s.alu.op = s.decoded.mn === 'ADD' ? '+' : '−'; tok(ev, 'cu-alu', s.alu.op, 'ctrl'); } },
     ALU_COMPUTE: { id: 'ALU_COMPUTE', comp: 'alu', role: 'ALU', action: 'alu.compute', pq: () => 'the ALU result', pa: s => pad3(s.alu.result) + (s.alu.n ? ' (N on)' : ''),
       expect: s => { const r = aluResult(s); return { value: pad3(r.value), n: r.n }; },
       check(s, p) {
@@ -834,19 +834,19 @@ const LMC = (() => {
       check(s, p) { if (s.input.length) return null; const v = num(p && p.value); return isNaN(v) || v > 999 ? 'invalidNumber' : null; },
       effect(s, p, ev) {
         const v = s.input.length ? s.input.shift() : num(p.value);
-        s.bus.data = v; s.bus.dataDir = 'fromIO'; tok(ev, 'in-mdr', pad3(v), 'data');
+        s.bus.data = v; s.bus.dataDir = 'fromIO'; tok(ev, 'in-iobus', pad3(v), 'data');
       } },
     OUT_OUT: { id: 'OUT_OUT', comp: 'cu', role: 'CU', action: 'cu.out',
       effect(s, p, ev) { s.bus.ctrl = 'OUT'; s.bus.ctrlDir = 'toIO'; tok(ev, 'cu-out', 'OUT', 'ctrl'); } },
     OUT_BUS: { id: 'OUT_BUS', comp: 'mdr', role: 'MI', action: 'mdr.toBus', go: true,
-      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toIO'; tok(ev, 'mdr-out', pad3(s.mdr), 'data'); } },
+      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toIO'; tok(ev, 'mdr-iobus', pad3(s.mdr), 'data'); } },
     OUT_PRINT: { id: 'OUT_PRINT', comp: 'out', role: 'IO', action: 'io.print', pq: () => 'the next OUTPUT', pa: s => pad3(s.output[s.output.length - 1]),
-      effect(s, p, ev) { s.output.push(s.bus.data); ev.push({ type: 'print' }); } },
+      effect(s, p, ev) { s.output.push(s.bus.data); tok(ev, 'iobus-out', pad3(s.bus.data), 'data'); ev.push({ type: 'print' }); } },
     BR_DECIDE: { id: 'BR_DECIDE', comp: 'cu', role: 'CU', action: s => (branchTaken(s) ? 'cu.taken' : 'cu.nottaken'),
       pq: () => 'the branch decision', pa: s => (s.branch ? 'taken' : 'not taken'),
       effect(s) { s.branch = branchTaken(s); } },
     BR_IRPC: { id: 'BR_IRPC', comp: 'ir', role: 'IR', action: 'ir.toPc',
-      effect(s, p, ev) { s.path = { from: 'ir', to: 'pc', value: s.ir % 100 }; tok(ev, 'ir-pc', pad2(s.ir % 100)); } },
+      effect(s, p, ev) { s.path = { from: 'ir', to: 'pc', value: s.ir % 100 }; tok(ev, 'ir-pcin', pad2(s.ir % 100)); ev.push({ type: 'fill', input: 'in-pc', value: pad2(s.ir % 100) }); } },
     BR_PCSET: { id: 'BR_PCSET', comp: 'pc', role: 'PC', action: 'pc.set', pq: () => 'PC', pa: s => pad2(s.pc),
       expect: s => s.path.value,
       check(s, p) { const v = num(p); if (isNaN(v) || v > 99) return 'invalidAddress'; return v === s.path.value ? null : 'wrongValue'; },
@@ -1273,7 +1273,7 @@ ONE   DAT 1` },
     });
     t('act() never mutates its input state', () => {
       let s = machine(SAMPLES[0].src); const before = JSON.stringify(s);
-      act(s, 'cu.next', null); act(s, 'cu.read', null); act(s, 'pc.toAddr', null); eq(JSON.stringify(s), before);
+      act(s, 'cu.next', null); act(s, 'cu.read', null); act(s, 'pc.toMar', null); eq(JSON.stringify(s), before);
     });
     t('inactive component: no state change', () => {
       const s = machine(SAMPLES[0].src); const r = act(s, 'alu.compute', { value: '45' }); eq(r.reason, 'notTurn'); ok(r.state === s);
@@ -1286,7 +1286,7 @@ ONE   DAT 1` },
     t('Go gating: one CU press, never two in a row', () => {
       // Go at the start of FETCH also authorises the PC transfer: PC is next, no second press.
       let s = act(machine(SAMPLES[0].src), 'cu.next', null).state;
-      eq(current(s).action, 'pc.toAddr');
+      eq(current(s).action, 'pc.toMar');
       // STA: after the ACC acts, the CU must press Go before the MDR drives the data bus.
       s = until(machine('LDA 3\nSTA 4\nHLT\nDAT 9\nDAT 0'), x => x.count.instr === 1 && current(x).id === 'STA_BUS');
       ok(current(s).isGo); eq(current(s).action, 'cu.next');
@@ -1301,6 +1301,14 @@ ONE   DAT 1` },
         if (r.comp === 'cu' && prev === 'cu' && r.action === 'cu.next') throw new Error('double CU Go at ' + r.id);
         prev = r.comp; m = autoStep(m).state;
       }
+    });
+    t('Send to MAR sets the MAR; the MAR button drives the address bus', () => {
+      let s = until(machine(SAMPLES[0].src), x => x.count.instr === 1 && current(x).id === 'X_IRMAR');
+      const busBefore = s.bus.addr;
+      s = act(s, 'ir.toMar', null).state; eq(s.mar, 6); eq(s.bus.addr, busBefore);
+      eq(current(s).action, 'mar.toBus');
+      s = act(s, 'mar.toBus', null).state; eq(s.bus.addr, 6); eq(s.bus.addrDir, 'toRam');
+      s = act(act(machine(SAMPLES[0].src), 'cu.next', null).state, 'pc.toMar', null).state; eq(s.mar, 0); eq(s.bus.addr, null);
     });
     t('PC+1 validated exactly', () => {
       let s = until(machine(SAMPLES[0].src), x => current(x).id === 'F_INC');
@@ -1447,11 +1455,19 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     'mar-ram': () => { const m = A('v-mar'); return [m, [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]]; },
     'cu-ram': () => [...cuOut(), [BX1, LANE.ctrl]],
     'ram-cu': () => PATHS['cu-ram']().reverse(),
-    'ram-mdr': () => [[BX1, LANE.data], [PIN, LANE.data], A('v-mdr')],
-    'mdr-ram': () => PATHS['ram-mdr']().reverse(),
+    // data bus: a value put on the bus stops at the bus (its value box); the next step takes it off
+    'ram-bus': () => [[BX1, LANE.data], A('bus-data')],
+    'bus-ram': () => [A('bus-data'), [BX1, LANE.data]],
+    'bus-mdr': () => [A('bus-data'), [PIN, LANE.data], A('v-mdr')],
+    'mdr-bus': () => PATHS['bus-mdr']().reverse(),
+    'iobus-mdr': () => [[DATA_BR, LANE.data], [PIN, LANE.data], A('v-mdr')],
+    'mdr-iobus': () => PATHS['iobus-mdr']().reverse(),
+    'in-iobus': () => { const t = A('in-tray'); return [t, [t[0], DATA_H], [DATA_BR, DATA_H], [DATA_BR, LANE.data]]; },
+    'iobus-out': () => { const t = A('out-tray'); return [[DATA_BR, LANE.data], [DATA_BR, DATA_H], [t[0], DATA_H], t]; },
     'mdr-ir': () => viaCh(A('v-mdr'), A('v-ir')),
     'ir-mar': () => viaCh(A('v-ir'), A('v-mar')),
-    'ir-pc': () => viaCh(A('v-ir'), A('v-pc')),
+    'ir-pcin': () => viaCh(A('v-ir'), A('in-pc')),
+    'cu-alu': () => viaCh(A('cu-dec'), A('v-aluOp')),
     'mdr-acc': () => viaCh(A('v-mdr'), A('v-acc')),
     'acc-mdr': () => viaCh(A('v-acc'), A('v-mdr')),
     'acc-alua': () => viaCh(A('v-acc'), A('v-aluA')),
@@ -1459,8 +1475,6 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     'alu-acc': () => { const r = A('v-aluR'), a = A('v-acc'); return [r, [r[0], GAP], [CH, GAP], [CH, a[1]], a]; },
     'cu-in': () => { const t = A('in-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
     'cu-out': () => { const t = A('out-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
-    'in-mdr': () => { const t = A('in-tray'); return [t, [t[0], DATA_H], [DATA_BR, DATA_H], [DATA_BR, LANE.data], [PIN, LANE.data], A('v-mdr')]; },
-    'mdr-out': () => { const m = A('v-mdr'), t = A('out-tray'); return [m, [PIN, m[1]], [PIN, LANE.data], [DATA_BR, LANE.data], [DATA_BR, DATA_H], [t[0], DATA_H], t]; },
   };
 
   /* ---------------- static build ---------------- */
@@ -1501,7 +1515,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     const svg = $('wires');
     const line = (pts, cls) => `<polyline class="w ${cls}" points="${pts.map(p => p.map(Math.round).join(',')).join(' ')}"/>`;
     let h = '';
-    ['mdr-ir', 'ir-mar', 'ir-pc', 'mdr-acc', 'acc-alua', 'mdr-alub', 'alu-acc', 'pc-mar'].forEach(p => { h += line(PATHS[p](), 'int'); });
+    ['mdr-ir', 'ir-mar', 'ir-pcin', 'mdr-acc', 'acc-alua', 'mdr-alub', 'alu-acc', 'pc-mar'].forEach(p => { h += line(PATHS[p](), 'int'); });
     const m = A('v-mar'), c = A('cu-dec');
     h += line([[L.mar[0] + L.mar[2], m[1]], [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]], 'addr');
     h += line([[L.mdr[0] + L.mdr[2], LANE.data], [BX1, LANE.data]], 'data');
@@ -1702,6 +1716,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     for (const ev of events) {
       if (ev.type === 'token') await token(ev);
       if (ev.type === 'print') justPrinted = true;
+      if (ev.type === 'fill') $(ev.input).value = ev.value;
       if (ev.type === 'flash') flashUntil = Date.now() + 1600;
     }
   }
@@ -2150,7 +2165,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   requestAnimationFrame(() => { drawWires(); });
   showMsg(S.prompts.empty, 'info');
   if (location.hash === '#tests') openTests();
-  window.LMCUI = { get state() { return M; }, loadProgram, undo, redo, performExpected, runFast, render, settings };
+  window.LMCUI = { get state() { return M; }, paths: PATHS, loadProgram, undo, redo, performExpected, runFast, render, settings };
 })();
 </script>
 </body>

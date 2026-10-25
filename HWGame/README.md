@@ -29,6 +29,7 @@ Some design rules the game follows:
 - **The Control Unit has one big Go button.** It starts FETCH, starts EXECUTE after decoding, and authorises transfers (if "Go" is switched on in Settings). The current phase is shown at the top. When the CU has just acted itself, that press already counts, so it never presses Go twice in a row.
 - **ALU** is a single CU button, because the instruction (ADD or SUB) already decides the operation.
 - **HALT** stops both on `000` and on illegal codes. The Decoder's **ILLEGAL** choice is where students spot an illegal code.
+- **MAR and MDR work the same way.** Sending a value to them (PC/IR → MAR, ACC → MDR) shows it in the register at once. Their own button (**Put on address bus** / **Put on data bus**) then drives it onto the bus.
 - **Only the MDR touches the data bus.** INP goes INPUT → data bus → MDR → ACC. OUT goes ACC → MDR → data bus → OUTPUT.
 - **N** next to the ACC is the **Negative flag**. It lights when a SUB result goes below zero (the ACC then shows the wrapped value, e.g. 995 for −5). LDA, ADD and INP switch it off, and BRZ/BRP read it. Hover over the lamp for the same explanation.
 
