@@ -108,6 +108,14 @@ input.text, select, textarea {
 .row.fill { flex: 1 1 auto; align-items: stretch; }
 .col.tight { gap: 2px; }
 .col.left { width: 168px; flex: none; }
+.col.left.narrow { width: 140px; }
+.col.stack { gap: 6px; justify-content: center; }
+/* fixed 56px rows; the top margin keeps buttons clear of the badge tab */
+.mdrgrid, .accgrid { grid-auto-rows: 56px; margin-top: 10px; align-content: start; }
+.mdrgrid button, .accgrid button { font-size: 16px; padding: 2px 3px; }
+.row.fill > button.bottom { align-self: flex-end; }
+.ctitle.side { min-width: 54px; align-self: center; }
+.row.fill > .vbox { align-self: center; }
 .comp.active .badge::before { content: "▶ "; }
 body.busy .comp.active button::after {
   content: ""; position: absolute; right: 6px; top: 6px; width: 14px; height: 14px; border: 3px solid rgba(255,255,255,.3);
@@ -120,7 +128,7 @@ body.busy .comp.active button::after {
 .val { font: 800 58px/1 var(--mono); color: #fff; letter-spacing: 2px; padding: 2px 8px; border-radius: 8px; background: #03100b; border: 2px solid #1d4a38; }
 .val.chg, .slot.chg, #ir-mn.chg { animation: chg 2s ease-out; }
 @keyframes chg { 0%, 35% { background: var(--yellow); color: #000; } 100% { background: #03100b; } }
-.was { font: 600 17px var(--mono); color: #ffe680; opacity: 0; height: 18px; transition: opacity .3s; white-space: nowrap; }
+.was { font: 600 15px var(--mono); color: #ffe680; opacity: 0; height: 16px; transition: opacity .3s; white-space: nowrap; }
 .was.show { opacity: .85; }
 .irsep { color: var(--muted); margin: 0 4px; }
 #ir-op { color: #ffb36b; }
@@ -205,7 +213,7 @@ body.busy .comp.active button::after {
 .disk-row { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 8px; background: #102a21; }
 .disk-row .nm { flex: 1 1 auto; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .disk-row.cur { outline: 2px solid var(--yellow); }
-.disk-row button { min-height: 48px; }
+.disk-row button { min-height: 56px; }
 .disk { font-size: 26px; }
 
 /* message panel */
@@ -299,10 +307,13 @@ body.busy .comp.active button::after {
   </div>
 
   <div class="comp" id="c-pc" data-comp="pc" data-l="pc">
-    <div class="ctitle"><span data-s="comps.pc"></span><span class="badge" data-badge="pc"></span></div>
-    <div class="row">
-      <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
-      <div class="col grow">
+    <span class="badge" data-badge="pc"></span>
+    <div class="row fill">
+      <div class="col tight left">
+        <div class="ctitle wrap"><span data-s="comps.pc"></span></div>
+        <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
+      </div>
+      <div class="col grow stack">
         <button data-act="pc.toAddr"></button>
         <div class="row"><input class="num" id="in-pc" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="New PC value"><button data-act="pc.set" class="grow"></button></div>
       </div>
@@ -310,18 +321,22 @@ body.busy .comp.active button::after {
   </div>
 
   <div class="comp" id="c-mar" data-comp="mar" data-l="mar">
-    <div class="ctitle"><span data-s="comps.mar"></span><span class="badge" data-badge="mar"></span></div>
-    <div class="row">
+    <span class="badge" data-badge="mar"></span>
+    <div class="row fill">
+      <div class="ctitle side"><span data-s="comps.mar"></span></div>
       <div class="vbox"><div class="val v2" id="v-mar">00</div><div class="was" id="w-mar"></div></div>
-      <button data-act="mar.latch" class="grow"></button>
+      <button data-act="mar.latch" class="grow bottom"></button>
     </div>
   </div>
 
   <div class="comp" id="c-mdr" data-comp="mdr" data-l="mdr">
-    <div class="ctitle"><span data-s="comps.mdr"></span><span class="badge" data-badge="mdr"></span></div>
-    <div class="row">
-      <div class="vbox"><div class="val v3" id="v-mdr">000</div><div class="was" id="w-mdr"></div></div>
-      <div class="grid2 grow"><button data-act="mdr.latch"></button><button data-act="mdr.toBus"></button><button data-act="mdr.toAlu" class="span2"></button></div>
+    <span class="badge" data-badge="mdr"></span>
+    <div class="row fill">
+      <div class="col tight left narrow">
+        <div class="ctitle"><span data-s="comps.mdr"></span></div>
+        <div class="vbox"><div class="val v3" id="v-mdr">000</div><div class="was" id="w-mdr"></div></div>
+      </div>
+      <div class="grid2 grow mdrgrid"><button data-act="mdr.latch"></button><button data-act="mdr.toBus"></button><button data-act="mdr.toAlu" class="span2"></button></div>
     </div>
   </div>
 
@@ -341,7 +356,7 @@ body.busy .comp.active button::after {
         <div class="vbox"><div class="val v3" id="v-acc">000</div><div class="was" id="w-acc"></div></div>
         <div class="row tight"><span class="lamp" id="n-lamp">N</span><span class="ovf" id="ovf"></span></div>
       </div>
-      <div class="grid2 grow">
+      <div class="grid2 grow accgrid">
         <button data-act="acc.fromMdr"></button><button data-act="acc.toMdr"></button>
         <button data-act="acc.fromBus"></button><button data-act="acc.toAlu"></button>
         <button data-act="acc.latchResult"></button><button data-act="acc.toOut"></button>
@@ -440,13 +455,14 @@ body.busy .comp.active button::after {
             <label><input type="checkbox" id="s-sound"> Sounds</label>
             <label><input type="checkbox" id="s-fastwheel"> Fast wheel (ignore click cost)</label>
             <label><input type="checkbox" id="s-crowd"> Crowd prediction question</label>
+            <label><input type="checkbox" id="s-space"> Space key performs the current step</label>
             <label><input type="checkbox" id="s-editmem"> Edit memory (in RAM overview)</label>
           </div>
           <div class="row"><span>Animation</span><div class="seg" id="s-speed"><button data-speed="0">Off</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div></div>
           <div class="row"><button id="m-overview">RAM overview…</button><button id="m-full">Full screen</button><a class="btnlink" href="handout.html" target="_blank" rel="noopener">Print handout</a><button id="m-tests">Self-tests</button></div>
         </section>
       </div>
-      <p class="small">Keys: Space = perform current step · Ctrl+Z / Ctrl+Y = undo / redo · ↑/↓ = RAM wheel · F = full screen · Esc = close</p>
+      <p class="small">Keys: Space = perform current step (if enabled) · Ctrl+Z / Ctrl+Y = undo / redo · ↑/↓ = RAM wheel · F = full screen · Esc = close</p>
     </div>
   </div>
 
@@ -1321,12 +1337,12 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
 
   /* ---------------- layout (stage pixels, 1920×1080) ---------------- */
   const L = {
-    cu: [40, 140, 440, 280], ir: [40, 432, 440, 168], acc: [40, 612, 440, 198],
-    pc: [500, 140, 380, 150], mar: [500, 302, 380, 110], mdr: [500, 424, 380, 170], alu: [500, 606, 380, 204],
+    cu: [40, 140, 440, 276], ir: [40, 426, 440, 168], acc: [40, 604, 440, 208],
+    pc: [500, 140, 380, 146], mar: [500, 298, 380, 112], mdr: [500, 422, 380, 158], alu: [500, 592, 380, 218],
     dec: [912, 112, 494, 250], msg: [960, 604, 446, 216], ram: [1416, 112, 494, 708],
     input: [20, 850, 580, 220], output: [620, 850, 580, 220], storage: [1220, 850, 690, 220],
   };
-  const LANE = { addr: 400, data: 470, ctrl: 540 }, BX0 = 900, BX1 = 1416, CH = 490, GAP = 600;
+  const LANE = { addr: 400, data: 470, ctrl: 540 }, BX0 = 900, BX1 = 1416, CH = 490, GAP = 586;
   const DATA_BR = 915, CTRL_BR = 940, DATA_H = 832, CTRL_H = 842;
   const CELL_Y = [0, 114, 228, 480, 594], CELL_H = [114, 114, 252, 114, 114];
 
@@ -1341,7 +1357,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   /* ---------------- settings & state ---------------- */
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const DEFAULTS = { mode: 'guided', played: ROLES.slice(), goGate: true, hints: true, sound: true, speed: reduced ? 0 : 1,
-                     fastWheel: false, crowd: false, editMem: false, preset: 8, names: {}, demoDelay: 900 };
+                     fastWheel: false, crowd: false, editMem: false, spaceKey: true, preset: 8, names: {}, demoDelay: 900 };
   let settings = (() => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('lmc-sim-settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; } })();
   const saveSettings = () => { try { localStorage.setItem('lmc-sim-settings', JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
 
@@ -1364,7 +1380,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   let k = 1;
   function fit() {
     const W = innerWidth, H = innerHeight;
-    k = Math.min(W / 1920, H / 1080);
+    k = Math.min(W / 1920, H / 1080) || 1;
     stage.style.transform = `translate(${(W - 1920 * k) / 2}px, ${(H - 1080 * k) / 2}px) scale(${k})`;
   }
   function anchor(id) {
@@ -1618,6 +1634,8 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   function token(ev) {
     if (!speed() || !PATHS[ev.path]) return Promise.resolve();
     const pts = PATHS[ev.path]();
+    // A hidden or zero-size window has no layout to animate along – just skip the animation.
+    if (!pts.flat().every(Number.isFinite)) return Promise.resolve();
     const fx = $('fx');
     let svg = fx.querySelector('svg');
     if (!svg) { svg = document.createElementNS(NS, 'svg'); svg.setAttribute('width', 1920); svg.setAttribute('height', 1080); fx.appendChild(svg); }
@@ -1641,6 +1659,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   async function animateLoad(cells, size) {
     if (!speed()) return;
     const from = A('c-storage'), to = A('wheel');
+    if (![...from, ...to].every(Number.isFinite)) return;
     const n = Math.min(size, 30), fx = $('fx'), jobs = [];
     for (let i = 0; i < n; i++) {
       const el = document.createElement('div'); el.className = 'token data'; el.textContent = p3(cells[i]); el.style.opacity = 0; fx.appendChild(el);
@@ -1741,14 +1760,27 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
   }
 
   function setupWheel() {
+    // ▲/▼: one cell per click; holding the button repeats after a short delay.
+    // `held` is checked before repeating, because a quick click can be released
+    // while the first (animated) move is still running.
     $$('.wbtn').forEach(b => {
-      const stop = () => { clearInterval(b._iv); b._iv = null; };
+      let held = false, delayT = null, iv = null;
+      const stop = () => { held = false; clearTimeout(delayT); clearInterval(iv); delayT = iv = null; };
       b.addEventListener('pointerdown', async e => {
         e.preventDefault(); stop();
+        held = true;
+        try { b.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
         const d = +b.dataset.wheel;
-        if (await moveWheel(d)) b._iv = setInterval(() => moveWheel(d, false, true), 170);
+        const ok = await moveWheel(d);
+        if (!ok || !held) return;
+        delayT = setTimeout(() => {
+          if (!held) return;
+          iv = setInterval(() => { if (held) moveWheel(d, false, true); else stop(); }, 170);
+        }, 400);
       });
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => b.addEventListener(t, stop));
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, stop));
+      addEventListener('pointerup', stop);
+      addEventListener('blur', stop);
       b.addEventListener('click', e => { if (e.detail === 0) moveWheel(+b.dataset.wheel); });
     });
     const w = $('wheel');
@@ -1884,6 +1916,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     }).join('');
     $('s-go').checked = settings.goGate; $('s-hints').checked = settings.hints; $('s-sound').checked = settings.sound;
     $('s-fastwheel').checked = settings.fastWheel; $('s-crowd').checked = settings.crowd; $('s-editmem').checked = settings.editMem;
+    $('s-space').checked = settings.spaceKey;
     $$('#s-speed button').forEach(b => b.classList.toggle('sel', +b.dataset.speed === settings.speed));
   }
   function openMenu() { syncMenu(); openDlg('dlg-menu'); }
@@ -1919,7 +1952,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
     $('m-skip').addEventListener('click', () => { closeDlg('dlg-menu'); runFast(true); });
     $('m-run').addEventListener('click', () => { closeDlg('dlg-menu'); runFast(false); });
     const tog = (id, key) => $(id).addEventListener('change', e => { settings[key] = e.target.checked; saveSettings(); render(); });
-    tog('s-go', 'goGate'); tog('s-hints', 'hints'); tog('s-sound', 'sound'); tog('s-fastwheel', 'fastWheel'); tog('s-crowd', 'crowd'); tog('s-editmem', 'editMem');
+    tog('s-go', 'goGate'); tog('s-hints', 'hints'); tog('s-sound', 'sound'); tog('s-fastwheel', 'fastWheel'); tog('s-crowd', 'crowd'); tog('s-editmem', 'editMem'); tog('s-space', 'spaceKey');
     $('s-speed').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.speed = +b.dataset.speed; saveSettings(); syncMenu(); });
     $('m-overview').addEventListener('click', openOverview);
     $('m-full').addEventListener('click', toggleFull);
@@ -2052,7 +2085,7 @@ if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
       if ((e.ctrlKey || e.metaKey) && key === 'z' && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
       if ((e.ctrlKey || e.metaKey) && key === 'y' && !typing) { e.preventDefault(); redo(); return; }
       if (typing || anyDialog() || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === ' ') { e.preventDefault(); spaceStep(); }
+      if (e.key === ' ') { if (settings.spaceKey) { e.preventDefault(); spaceStep(); } }
       else if (e.key === 'ArrowUp') { e.preventDefault(); moveWheel(-1, true); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); moveWheel(1, true); }
       else if (key === 'f') toggleFull();

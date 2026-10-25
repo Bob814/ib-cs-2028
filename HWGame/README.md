@@ -24,11 +24,11 @@ Double-click `index.html` (or open it from a USB stick). It works offline from `
 - **Program:** load a built-in or saved program, open the **Programs editor**, **Reset machine** (keeps the program), **Clear all**.
 - **Run:** Undo / Redo (unlimited), Skip to next instruction, Run to HALT.
 - **Roles:** presets for 4, 6 or 8 students (merged roles share a badge) and student names for the badges.
-- **Settings:** CU "Go" before each transfer, hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, edit memory, RAM overview (all 100 cells), full screen, print handout, self-tests.
+- **Settings:** CU "Go" before each transfer, hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, Space key shortcut, edit memory, RAM overview (all 100 cells), full screen, print handout, self-tests.
 
 Settings and names are remembered in the browser.
 
-**Keyboard (teacher):** `Space` performs the current step · `Ctrl+Z` / `Ctrl+Y` undo / redo · `↑` / `↓` turn the RAM wheel · `F` full screen · `Esc` closes dialogs.
+**Keyboard (teacher):** `Space` performs the current step (can be switched off in Settings, e.g. so a student tapping the keyboard can't advance the game) · `Ctrl+Z` / `Ctrl+Y` undo / redo · `↑` / `↓` turn the RAM wheel · `F` full screen · `Esc` closes dialogs.
 
 ## Adding programs
 
