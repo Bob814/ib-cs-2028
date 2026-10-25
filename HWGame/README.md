@@ -26,7 +26,7 @@ Panels are grouped by who operates them:
 
 Some design rules the game follows:
 
-- **The Control Unit has one big Go button.** It starts FETCH, starts EXECUTE after decoding, and authorises transfers (if "Go" is switched on in Settings). The current phase is shown at the top. When the CU has just acted itself, that press already counts, so it never presses Go twice in a row.
+- **No "next" button.** The phases (FETCH → DECODE → EXECUTE) follow each other automatically and are shown at the top and on the Control Unit. The CU only acts where a real CPU's control unit decides something: memory and I/O signals, the ALU, branches and HALT.
 - **ALU** is a single CU button, because the instruction (ADD or SUB) already decides the operation.
 - **HALT** stops both on `000` and on illegal codes. The Decoder's **ILLEGAL** choice is where students spot an illegal code.
 - **MAR and MDR work the same way.** Sending a value to them (PC/IR → MAR, ACC → MDR) shows it in the register at once. Their own button (**Put on address bus** / **Put on data bus**) then drives it onto the bus.
@@ -41,7 +41,7 @@ Some design rules the game follows:
 - **Program:** load a built-in or saved program, open the **Programs editor**, **Reset machine** (keeps the program), **Clear all**.
 - **Run:** Undo / Redo (unlimited), Skip to next instruction, Run to HALT.
 - **Roles:** presets for 4, 6 or 8 students (merged roles share a badge) and student names for the badges.
-- **Settings:** CU "Go" before each transfer, hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, Space key shortcut, edit memory, RAM overview (all 100 cells), full screen, print handout, self-tests.
+- **Settings:** hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, Space key shortcut, edit memory, RAM overview (all 100 cells), full screen, print handout, self-tests.
 
 Settings and names are remembered in the browser.
 
@@ -81,4 +81,4 @@ Every user-facing string is in the `STRINGS` object at the top of the `lmc-core`
 node -e "const s=require('fs').readFileSync('index.html','utf8').match(/<script id=\"lmc-core\">([\s\S]*?)<\/script>/)[1];(0,eval)(s);const r=LMC.runTests();r.filter(x=>!x.ok).forEach(x=>console.log('FAIL',x.name,x.err));console.log(r.filter(x=>x.ok).length+'/'+r.length+' passed')"
 ```
 
-The tests cover the assembler (all samples, unknown label or mnemonic, duplicates, ranges, length), every opcode including illegal codes, the five sample programs run to HALT, the spec's worked snapshot, and guided-mode validation (wrong turn, wrong values, Go gating, RAM head/MAR/signal gating, wheel clicks, undo snapshots).
+The tests cover the assembler (all samples, unknown label or mnemonic, duplicates, ranges, length), every opcode including illegal codes, the five sample programs run to HALT, the spec's worked snapshot, and guided-mode validation (wrong turn, wrong values, automatic phase changes, RAM head/MAR/signal gating, wheel clicks, undo snapshots).
