@@ -6,6 +6,7 @@ A classroom game in which students **act as the hardware** of a Little Man Compu
 | --- | --- |
 | `index.html` | The whole simulator: one self-contained file with no network access. |
 | `handout.html` | Print-ready A4 student handout: role cards, instruction set, cycle cheat-sheet, sample programs with trace tables, glossary. |
+| `blank-panel.html` | Print-ready A4 (landscape) test sheet: the CPU and RAM from the game with no names or buttons. The buses are in place, and the internal wires get their own lanes so each connection can be followed. **Show answers** (on screen) fills in the names for an answer key. |
 | `tests.html` | Opens the built-in self-tests (same as `index.html#tests`). |
 
 ## Opening it
@@ -41,7 +42,7 @@ Some design rules the game follows:
 - **Program:** load a built-in or saved program, open the **Programs editor**, **Reset machine** (keeps the program), **Clear all**.
 - **Run:** Undo / Redo (unlimited), Skip to next instruction, Run to HALT.
 - **Roles:** presets for 4, 6 or 8 students (merged roles share a badge) and student names for the badges.
-- **Settings:** hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, Space key shortcut, edit memory, RAM overview (all 100 cells), full screen, print handout, self-tests.
+- **Settings:** hints, sounds, animation speed (off/1×/2×/4×), fast wheel (wheel clicks not counted), crowd prediction question, Space key shortcut, edit memory, RAM overview (all 100 cells), full screen, print handout, blank panel (test sheet), self-tests.
 
 Settings and names are remembered in the browser.
 
@@ -62,6 +63,20 @@ Teacher menu → **Programs editor…**
 - **Load into RAM** runs it. **Save to Storage** keeps it in this browser (localStorage). **Export / Import .lmc** moves programs between computers as plain text files.
 
 To add a program permanently for everyone, add an entry to `SAMPLES` in the `lmc-core` script inside `index.html`. Use `{ name, builtin: true, inputs: [..], src: \`...\` }`.
+
+## Regenerating the printouts
+
+`handout.html` and `blank-panel.html` are generated from `index.html`, so their wording, steps and layout match the game. After changing the game, run:
+
+```bash
+node tools/gen_handout.js
+```
+
+```bash
+node tools/gen_blank_panel.js
+```
+
+`gen_handout.js` only needs Node. `gen_blank_panel.js` also needs Google Chrome: it measures the real panel in headless Chrome using `tools/extract-geometry.html`. Set `CHROME=/path/to/chrome` if Chrome is not found. Edit the generators rather than the HTML files, or the next run overwrites your edits.
 
 ## Translating
 
