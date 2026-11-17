@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPU Simulator – Blank Panel</title>
+<!-- Generated from index.html (the real panel geometry and STRINGS): same blocks, wires and buses, no names or buttons. -->
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font: 11pt/1.4 "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #000; background: #fff; margin: 0; }
+  .sheet { max-width: 277mm; margin: 0 auto; }
+  header { display: flex; align-items: flex-end; gap: 8mm; margin-bottom: 4mm; }
+  h1 { font-size: 16pt; margin: 0; flex: 1; }
+  .fill { white-space: nowrap; } .fill span { display: inline-block; width: 50mm; border-bottom: 1px solid #000; }
+  .fill span.short { width: 25mm; }
+  svg { display: block; width: 100%; height: auto; }
+  .chip { fill: #f3f3f3; stroke: #555; stroke-width: 3; }
+  polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .int { stroke-width: 5; }
+  .bus { stroke-width: 10; }
+  .addr { stroke: #4b95ff; } .data { stroke: #ff9d1f; } .ctrl { stroke: #ff4040; }
+  .panel { fill: #fff; stroke: #333; stroke-width: 3; }
+  .cell { stroke: #bbb; stroke-width: 1.5; }
+  .head { fill: none; stroke: #333; stroke-width: 6; }
+  .val { fill: #eee; stroke: #555; stroke-width: 2; }
+  .op { fill: #fff; stroke: #555; stroke-width: 2; }
+  .inp { fill: #fff; stroke: #555; stroke-width: 2; stroke-dasharray: 6 4; }
+  .lamp { fill: #fff; stroke: #555; stroke-width: 3; }
+  .ans { display: none; fill: #c00000; font: 700 22px "Segoe UI", Roboto, Helvetica, Arial, sans-serif; paint-order: stroke; stroke: #fff; stroke-width: 6px; stroke-linejoin: round; }
+  .ans.sm { font-size: 16px; } .ans.big { font-size: 26px; letter-spacing: 3px; }
+  body.answers .ans { display: inline; }
+  .tools { position: fixed; right: 6mm; top: 4mm; display: flex; gap: 4mm; align-items: center; font-size: 11pt; background: #fff; padding: 1mm 2mm; border: 1px solid #999; border-radius: 2mm; }
+  .tools button { font-size: 11pt; padding: 1mm 4mm; }
+  @media screen { body { background: #ccc; } .sheet { background: #fff; padding: 10mm; margin: 16mm auto 6mm; box-shadow: 0 2px 10px #0004; max-width: 297mm; } }
+  @media print { .tools { display: none; } }
+</style>
+</head>
+<body>
+<div class="tools"><label><input type="checkbox" id="show-ans" onchange="document.body.classList.toggle('answers', this.checked); document.querySelector('h1').textContent = this.checked ? 'The CPU – answer key' : 'The CPU – label the parts'"> Show answers</label><button onclick="print()">Print</button></div>
+<div class="sheet">
+  <header><h1>The CPU – label the parts</h1><div class="fill">Name <span></span></div><div class="fill">Class <span class="short"></span></div><div class="fill">Date <span class="short"></span></div></header>
+  <svg viewBox="10 100 2086 776" role="img" aria-label="Blank diagram of the simulator panel">
+<rect class="chip" x="20" y="112" width="1180" height="754" rx="26"/><polyline class="int addr" points="141,536 582,536 582,424 441,424"/><polyline class="int data" points="838,492 626,492 626,550 141,550"/><polyline class="int addr" points="100,404 648,404 648,334 882,334"/><polyline class="int addr" points="141,564 670,564 670,350 882,350"/><polyline class="int data" points="838,472 692,472 692,192 838,192"/><polyline class="int data" points="1056,737 1056,598 714,598 714,206 838,206"/><polyline class="int data" points="838,220 736,220 736,737 817,737"/><polyline class="int data" points="838,482 838,584 945,584 945,737"/><polyline class="bus addr" points="1180,342 1190,342 1190,365 1650,365"/><polyline class="bus data" points="1180,455 1650,455"/><polyline class="bus ctrl" points="560,165 604,165 604,568 1190,568 1190,545 1650,545"/><rect class="panel" x="40" y="136" width="520" height="188" rx="14"/><rect class="panel" x="40" y="336" width="520" height="132" rx="14"/><rect class="panel" x="40" y="480" width="520" height="340" rx="14"/><rect class="panel" x="760" y="136" width="420" height="152" rx="14"/><rect class="panel" x="760" y="300" width="420" height="100" rx="14"/><rect class="panel" x="760" y="412" width="420" height="148" rx="14"/><rect class="panel" x="760" y="608" width="420" height="248" rx="14"/><clipPath id="rclip"><rect class="" x="1650" y="112" width="436" height="708" rx="14"/></clipPath><rect class="panel" x="1650" y="112" width="436" height="708" rx="14"/><g clip-path="url(#rclip)"><line class="cell" x1="1650" x2="2086" y1="229" y2="229"/><line class="cell" x1="1650" x2="2086" y1="343" y2="343"/><line class="cell" x1="1650" x2="2086" y1="595" y2="595"/><line class="cell" x1="1650" x2="2086" y1="709" y2="709"/></g><rect class="head" x="1653" y="343" width="430" height="252" rx="10"/><rect class="val" x="53" y="377" width="93.8" height="66" rx="8"/><rect class="val" x="53" y="517" width="175.7" height="66" rx="8"/><rect class="val" x="773" y="173" width="130.8" height="66" rx="8"/><rect class="val" x="835" y="309" width="93.8" height="66" rx="8"/><rect class="val" x="773" y="449" width="130.8" height="66" rx="8"/><rect class="val" x="773" y="711.8" width="88.3" height="50" rx="8"/><rect class="val" x="901.3" y="711.8" width="88.3" height="50" rx="8"/><rect class="val" x="1029.7" y="711.8" width="53" height="50" rx="8"/><rect class="op" x="869.3" y="713.8" width="24.1" height="46" rx="6"/><rect class="inp" x="399" y="390" width="84" height="56" rx="6"/><circle class="lamp" cx="935.6" cy="205.5" r="22"/>
+<text class="ans" x="54" y="166">Control Unit</text><text class="ans" x="54" y="366">Program Counter (PC)</text><text class="ans" x="54" y="510">Instruction Register (IR)</text><text class="ans" x="774" y="166">Accumulator (ACC)</text><text class="ans" x="774" y="330">MAR</text><text class="ans" x="774" y="442">MDR</text><text class="ans" x="774" y="638">ALU</text><text class="ans" x="54" y="680">Decoder (opcode → instruction name)</text><text class="ans sm" x="441" y="382" text-anchor="middle">new PC</text><text class="ans big" x="50" y="120">CPU</text><text class="ans" x="935.6" y="214.5" text-anchor="middle">N</text><text class="ans sm" x="935.6" y="249.5" text-anchor="middle">negative flag</text><text class="ans sm" x="817.15" y="783.8" text-anchor="middle">A ← ACC</text><text class="ans sm" x="945.4499999999999" y="783.8" text-anchor="middle">B ← MDR</text><text class="ans sm" x="881.3499999999999" y="781.8" text-anchor="middle">+/−</text><text class="ans sm" x="1056.2" y="783.8" text-anchor="middle">result</text><text class="ans sm" x="140.85" y="605" text-anchor="middle">opcode | operand</text><text class="ans" x="1868" y="152" text-anchor="middle">RAM (100 cells, 5 visible)</text><text class="ans sm" x="1868" y="377" text-anchor="middle">HEAD = cell at the MAR address</text><text class="ans" x="1276" y="349">ADDRESS BUS</text><text class="ans" x="1276" y="439">DATA BUS</text><text class="ans" x="1276" y="529">CONTROL BUS</text>
+  </svg>
+</div>
+</body>
+</html>

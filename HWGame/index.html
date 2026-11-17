@@ -1,0 +1,2132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPU Simulator – LMC</title>
+<style>
+:root {
+  --pcb: #0b3a2a; --pcb-dark: #062a1d; --trace: rgba(150, 210, 140, .07);
+  --panel: #0e2219; --panel-2: #14302a; --line: #2f6b52; --text: #f1f7f2; --muted: #a8c4b4;
+  --yellow: #ffd400; --green: #39e072; --red: #ff4f4f;
+  --addr: #4b95ff; --data: #ff9d1f; --ctrl: #ff4040;
+  --btn: #1d4234; --btn-border: #4b8f71; --btn-hover: #27594a;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #03170f; color: var(--text); font-family: var(--sans); }
+body { -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+#stage {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(40, 120, 80, .25), transparent 60%),
+    repeating-linear-gradient(90deg, transparent 0 63px, var(--trace) 63px 65px),
+    repeating-linear-gradient(0deg, transparent 0 63px, var(--trace) 63px 65px),
+    var(--pcb);
+}
+.hidden { display: none !important; }
+.invisible { visibility: hidden; }
+.mono { font-family: var(--mono); }
+.small { font-size: 18px; color: var(--muted); margin: 6px 0; }
+
+/* layout helpers */
+.row { display: flex; gap: 8px; align-items: center; }
+.row.tight { gap: 6px; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.grow { flex: 1 1 auto; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.grid6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.span2 { grid-column: span 2; }
+
+/* controls */
+button, .btnlink {
+  min-height: 56px; min-width: 56px; font: 650 19px/1.05 var(--sans); color: var(--text);
+  background: var(--btn); border: 2px solid var(--btn-border); border-radius: 10px; padding: 4px 8px;
+  cursor: pointer; position: relative; touch-action: manipulation;
+}
+button:hover { background: var(--btn-hover); }
+button:active { transform: translateY(1px); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.btnlink { display: inline-flex; align-items: center; text-decoration: none; }
+button.sel { background: var(--yellow); color: #000; border-color: #fff; }
+button.off { opacity: .45; cursor: not-allowed; }
+input.num {
+  height: 56px; width: 84px; font: 700 34px var(--mono); text-align: center; color: #fff;
+  background: #04130d; border: 2px solid var(--btn-border); border-radius: 10px; padding: 0;
+}
+input.num.n3 { width: 104px; }
+input.text, select, textarea {
+  font: 20px var(--sans); color: var(--text); background: #04130d; border: 2px solid var(--btn-border); border-radius: 8px; min-height: 48px; padding: 4px 10px;
+}
+
+/* top bar */
+#topbar {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 100px; display: flex; align-items: center; gap: 18px;
+  padding: 0 20px; background: linear-gradient(#062418, #0a3022); border-bottom: 2px solid var(--line);
+}
+#tb-prog { width: 290px; flex: none; }
+.tb-label { font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+#prog-name { font-size: 22px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pills { display: flex; align-items: center; gap: 6px; flex: none; }
+.pill { font: 800 22px var(--sans); padding: 10px 14px; border-radius: 24px; border: 2px solid var(--line); color: var(--muted); letter-spacing: 1px; }
+.pill.on { background: var(--yellow); color: #000; border-color: #fff; box-shadow: 0 0 18px rgba(255, 212, 0, .7); }
+.arrow { color: var(--muted); font-size: 22px; }
+#tb-step { flex: 1 1 auto; min-width: 0; }
+#step-text { font-size: 28px; font-weight: 750; line-height: 1.12; max-height: 64px; overflow: hidden; }
+#step-text.done { color: var(--green); }
+#step-text.bad { color: var(--red); }
+#crowd { font-size: 20px; color: #ffe680; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tb-counters { display: flex; gap: 10px; flex: none; }
+.ctr { display: flex; flex-direction: column; align-items: center; min-width: 104px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,.2); }
+.ctr b { font: 700 30px var(--mono); }
+.ctr span { font-size: 14px; color: var(--muted); }
+#menu-btn { width: 72px; height: 72px; font-size: 36px; flex: none; overflow: hidden; }
+#menu-prog { position: absolute; left: 0; bottom: 0; height: 6px; width: 0; background: var(--yellow); }
+#menu-btn.holding #menu-prog { width: 100%; transition: width 1s linear; }
+
+/* chip and components */
+#chip { position: absolute; left: 20px; top: 112px; width: 1000px; height: 718px; border: 3px solid #6aa98c; border-radius: 26px; background: rgba(5, 20, 14, .55); box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
+#chip-label { position: absolute; left: 24px; top: -18px; background: var(--pcb); color: #cfe; font: 800 22px var(--sans); padding: 0 10px; letter-spacing: 3px; }
+.comp {
+  position: absolute; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; padding: 6px 10px;
+  transition: opacity .25s, box-shadow .25s; display: flex; flex-direction: column; gap: 6px;
+}
+.comp.dim { opacity: .6; }
+.comp.active { border-color: var(--yellow); animation: pulse 1.3s ease-in-out infinite; opacity: 1; z-index: 2; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 4px var(--yellow), 0 0 8px 4px rgba(255,212,0,.35); } 50% { box-shadow: 0 0 0 6px var(--yellow), 0 0 34px 10px rgba(255,212,0,.6); } }
+.comp.shake { animation: shake .45s; }
+@keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-12px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-7px); } 80% { transform: translateX(4px); } }
+.comp.good { box-shadow: 0 0 0 6px var(--green) !important; }
+.comp.badflash { box-shadow: 0 0 0 6px var(--red) !important; }
+.ctitle { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; color: var(--muted); min-height: 26px; white-space: nowrap; }
+.ctitle.col { flex-direction: column; align-items: stretch; text-align: center; white-space: normal; }
+.badge { position: absolute; top: -12px; right: 14px; z-index: 3; border: 2px solid #3d7a60; font-size: 15px; line-height: 18px; font-weight: 700; padding: 0 9px; border-radius: 12px; background: #1f4535; color: #d5efe2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+.comp.active .badge { background: var(--yellow); color: #000; border-color: #fff; }
+.ctitle.wrap { white-space: normal; line-height: 1.1; min-height: 0; }
+.row.fill { flex: 1 1 auto; align-items: stretch; }
+.col.tight { gap: 2px; }
+.col.left { width: 168px; flex: none; }
+.col.left.narrow { width: 140px; }
+.col.left.acc { width: 196px; }
+.irgrid, .mdrgrid, .accgrid { grid-auto-rows: 56px; margin-top: 10px; align-content: start; }
+.irgrid { flex: 0 0 200px; }
+#c-ir #ir-mn { white-space: nowrap; font-size: 21px; }
+.nbox { display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: help; }
+.ncap { font-size: 13px; color: var(--muted); }
+.alu-io { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 8px; }
+#c-ir #ir-mn { margin: 0 0 18px 4px; }
+.col.stack { gap: 6px; justify-content: center; }
+/* .irgrid/.mdrgrid/.accgrid: fixed 56px rows; the top margin keeps buttons clear of the badge tab */
+.mdrgrid button, .accgrid button { font-size: 16px; padding: 2px 3px; }
+.row.fill > button.bottom { align-self: flex-end; }
+.ctitle.side { min-width: 54px; align-self: center; }
+.row.fill > .vbox { align-self: center; }
+.comp.active .badge::before { content: "▶ "; }
+body.busy .comp.active button::after {
+  content: ""; position: absolute; right: 6px; top: 6px; width: 14px; height: 14px; border: 3px solid rgba(255,255,255,.3);
+  border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* values */
+.vbox { position: relative; display: flex; flex-direction: column; align-items: flex-start; flex: none; }
+.val { font: 800 58px/1 var(--mono); color: #fff; letter-spacing: 2px; padding: 2px 8px; border-radius: 8px; background: #03100b; border: 2px solid #1d4a38; }
+.val.chg, .slot.chg, #ir-mn.chg { animation: chg 2s ease-out; }
+@keyframes chg { 0%, 35% { background: var(--yellow); color: #000; } 100% { background: #03100b; } }
+.was { font: 600 15px var(--mono); color: #ffe680; opacity: 0; height: 16px; transition: opacity .3s; white-space: nowrap; }
+.was.show { opacity: .85; }
+.irsep { color: var(--muted); margin: 0 4px; }
+#ir-op { color: #ffb36b; }
+#ir-mn { font-size: 24px; font-weight: 800; color: #9fe8ff; margin-top: 4px; padding: 0 6px; border-radius: 6px; }
+.lamp { font: 800 22px var(--sans); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #2a1414; color: #7a4a4a; border: 3px solid #552; }
+.lamp.on { background: var(--red); color: #fff; box-shadow: 0 0 20px var(--red); border-color: #fbb; }
+.ovf { font: 700 16px var(--sans); color: #000; background: var(--data); border-radius: 8px; padding: 2px 8px; }
+.ovf:empty { display: none; }
+
+/* CU */
+.cu-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+.cu-head .ctitle { justify-content: flex-start; gap: 14px; }
+#cu-phase { font-size: 21px; font-weight: 700; color: #ffe680; white-space: nowrap; }
+#cu-next { font-size: 17px; color: var(--muted); white-space: nowrap; }
+#cu-dec { font: 800 40px/1 var(--mono); color: #9fe8ff; min-height: 40px; white-space: nowrap; }
+#cu-grid button { font-size: 20px; padding: 2px 4px; }
+
+/* ALU */
+#alu-ops { display: flex; gap: 6px; flex-wrap: wrap; }
+#alu-ops span { font: 700 14px var(--mono); padding: 2px 7px; border-radius: 6px; border: 1px dashed #4a6; color: #5f8574; cursor: help; }
+#c-alu { justify-content: space-evenly; }
+#alu-expr { display: flex; align-items: center; gap: 8px; font-size: 40px; font-weight: 800; }
+#alu-expr .slot { white-space: nowrap; }
+#alu-expr .slot small { font-size: 22px; color: #ff8a8a; margin-left: 4px; }
+#alu-expr .slot { padding: 0 6px; border-radius: 8px; background: #03100b; border: 2px solid #1d4a38; min-width: 2.2ch; text-align: center; }
+#alu-expr .aop { color: #ffb36b; }
+.ntoggle.on { background: var(--red); border-color: #fbb; }
+
+/* decoder */
+#dec-grid button { font: 800 19px var(--mono); padding: 0 2px; }
+#dec-grid button[data-mn="ILLEGAL"] { grid-column: span 2; }
+.oplabel { font-size: 20px; color: var(--muted); }
+
+/* buses */
+#buses { position: absolute; inset: 0; pointer-events: none; }
+.lane-tag { position: absolute; font: 800 17px var(--sans); letter-spacing: 1.5px; }
+.lane-val { position: absolute; font: 800 40px/1 var(--mono); padding: 4px 12px; border-radius: 10px; background: #04130d; border: 3px solid; transform: translate(-50%, -50%); min-width: 96px; text-align: center; }
+.lane-val.glow { box-shadow: 0 0 22px currentColor; }
+.lane-dir { position: absolute; font-size: 34px; transform: translate(-50%, -50%); }
+.ctrl-word { position: absolute; font: 800 20px var(--sans); color: rgba(255, 90, 90, .28); transform: translate(-50%, -50%); letter-spacing: 1px; padding: 2px 6px; border-radius: 6px; }
+.ctrl-word.on { color: #fff; background: var(--ctrl); box-shadow: 0 0 20px var(--ctrl); font-size: 24px; }
+#wires .w { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#wires .w.int { stroke: rgba(170, 220, 190, .22); stroke-width: 4; }
+#wires .w.addr { stroke: var(--addr); stroke-width: 10; }
+#wires .w.data { stroke: var(--data); stroke-width: 10; }
+#wires .w.ctrl { stroke: var(--ctrl); stroke-width: 10; }
+#wires .w.br { stroke-width: 6; opacity: .8; }
+#wires .w.dimbus { opacity: .45; }
+
+/* RAM */
+#c-ram { padding: 0; flex-direction: row; gap: 0; background: transparent; border: none; }
+#c-ram.active { animation: none; box-shadow: none; }
+#c-ram.active #wheel, #c-ram.active #ramctl { animation: pulse 1.3s ease-in-out infinite; border-color: var(--yellow); }
+#wheel { position: relative; width: 280px; height: 708px; overflow: hidden; border: 3px solid var(--line); border-radius: 14px; background: #0a1914; touch-action: none; cursor: ns-resize; }
+#wheel-inner { position: absolute; inset: 0; }
+.cell { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #1f3a2f; }
+.cell .a { font: 600 22px var(--mono); color: #8aa; }
+.cell .v { font: 800 46px var(--mono); color: #dfe; }
+.cell.headcell .a { font-size: 30px; color: #cfe; }
+.cell.headcell .v { font-size: 84px; color: #fff; }
+.cell.void { background: repeating-linear-gradient(45deg, #0a1914 0 10px, #0d1f18 10px 20px); }
+.cell .mark { color: var(--yellow); font-size: 28px; position: absolute; left: 4px; }
+.cell.written { animation: chg 1.6s ease-out; }
+#head { position: absolute; left: 0; right: 0; top: 228px; height: 252px; border: 6px solid var(--red); border-radius: 10px; pointer-events: none; box-shadow: 0 0 22px rgba(255, 79, 79, .5); }
+#head.match { border-color: var(--green); box-shadow: 0 0 22px rgba(57, 224, 114, .6); }
+#head-tag { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); background: var(--red); color: #fff; font: 800 15px var(--sans); padding: 1px 10px; border-radius: 0 0 8px 8px; letter-spacing: 1px; white-space: nowrap; }
+#head.match #head-tag { background: var(--green); color: #000; }
+#wheel.bump { animation: bump .3s; }
+@keyframes bump { 30% { transform: translateY(14px); } 60% { transform: translateY(-6px); } }
+#ramctl { width: 146px; margin-left: 10px; display: flex; flex-direction: column; gap: 10px; padding: 8px; border: 3px solid var(--line); border-radius: 14px; background: var(--panel); }
+.wbtn { height: 96px; font-size: 40px; }
+.rambtn { height: 110px; font-size: 18px; }
+#clicks { margin-top: auto; text-align: center; display: flex; flex-direction: column; }
+#clicks b { font: 800 40px var(--mono); }
+#clicks span { font-size: 15px; color: var(--muted); }
+#ramctl > button:nth-of-type(2) { margin-top: 70px; }
+
+/* I/O and storage */
+.tray { flex: 1 1 auto; display: flex; gap: 8px; align-items: center; overflow: hidden; padding: 4px; border-radius: 10px; background: #04130d; border: 2px dashed #2c5a47; }
+#out-tray { justify-content: flex-end; }
+.chip { font: 800 38px var(--mono); padding: 2px 10px; border-radius: 8px; background: #183a2e; border: 2px solid #3d7a60; flex: none; }
+.chip.first { border-color: var(--yellow); }
+.chip.new { animation: chg 1.4s ease-out; }
+.tray .empty { font-size: 18px; color: var(--muted); padding: 0 8px; }
+#disk-list { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.disk-row { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 8px; background: #102a21; }
+.disk-row .nm { flex: 1 1 auto; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disk-row.cur { outline: 2px solid var(--yellow); }
+.disk-row button { min-height: 56px; }
+.disk { font-size: 26px; }
+
+/* message panel */
+#msgpanel { position: absolute; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(4, 19, 13, .8); border: 2px solid var(--line); }
+#mode-line { font-size: 17px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+#msg { font-size: 22px; font-weight: 650; min-height: 54px; line-height: 1.2; }
+#msg.ok { color: var(--green); } #msg.warn { color: #ffe680; } #msg.err { color: #ff8a8a; } #msg.info { color: #cfe; }
+#demo-speed { flex: 1; height: 40px; }
+
+/* animation layer */
+#fx { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+.token { position: absolute; left: 0; top: 0; font: 800 30px var(--mono); padding: 2px 10px; border-radius: 10px; color: #000; background: var(--yellow); box-shadow: 0 0 16px rgba(255,255,255,.6); white-space: nowrap; will-change: transform; }
+.token.addr { background: var(--addr); color: #fff; } .token.data { background: var(--data); } .token.ctrl { background: var(--ctrl); color: #fff; font-size: 22px; }
+#fx svg { position: absolute; inset: 0; }
+#fx .hl { fill: none; stroke: #fff; stroke-width: 6; stroke-dasharray: 10 8; opacity: .85; stroke-linecap: round; }
+
+/* dialogs */
+.overlay { position: absolute; inset: 0; z-index: 50; background: rgba(0, 0, 0, .6); display: grid; place-items: center; }
+.dialog { width: 1180px; max-height: 980px; overflow-y: auto; background: #0d2219; border: 3px solid #6aa98c; border-radius: 18px; padding: 18px 24px; box-shadow: 0 20px 80px #000; -webkit-user-select: text; user-select: text; }
+.dialog.wide { width: 1600px; }
+.dhead { display: flex; justify-content: space-between; align-items: center; }
+.dialog h2 { margin: 0; font-size: 32px; }
+.dialog h3 { margin: 10px 0 6px; font-size: 22px; color: #ffe680; }
+.dialog section { background: rgba(0,0,0,.2); border-radius: 12px; padding: 6px 14px 12px; }
+.dialog .row { flex-wrap: wrap; margin: 6px 0; font-size: 20px; }
+.mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 10px 0 0 10px; }
+.seg button:last-child { border-radius: 0 10px 10px 0; }
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 19px; }
+.checks label { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.checks input { width: 26px; height: 26px; }
+#m-names .row label { width: 210px; font-size: 18px; }
+#m-names input { flex: 1; }
+#m-prog { flex: 1; }
+.edpanes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; height: 600px; margin: 8px 0; }
+#ed-src { font: 22px/1.35 var(--mono); resize: none; height: 100%; }
+#ed-listing { overflow: auto; background: #04130d; border-radius: 8px; border: 2px solid var(--btn-border); padding: 8px; font-size: 20px; }
+#ed-listing table { border-collapse: collapse; width: 100%; }
+#ed-listing td { padding: 2px 10px; white-space: pre; }
+#ed-listing td.c { color: #ffe680; font-weight: 800; }
+#ed-errors { color: #ff9a9a; font-size: 20px; min-height: 28px; }
+#ram-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
+#ram-grid .rc { background: #04130d; border: 1px solid #2c5a47; border-radius: 6px; padding: 2px 4px; text-align: center; }
+#ram-grid .rc small { display: block; color: #8aa; font-size: 14px; }
+#ram-grid .rc b { font-size: 26px; }
+#ram-grid .rc input { width: 70px; font: 700 22px var(--mono); text-align: center; background: #000; color: #fff; border: 1px solid #4b8f71; border-radius: 4px; }
+#ram-grid .rc.h { border-color: var(--yellow); } #ram-grid .rc.m { background: #10304a; }
+#sum-body { font-size: 22px; }
+#sum-body table { border-collapse: collapse; margin: 6px 0; }
+#sum-body td { padding: 4px 14px; border-bottom: 1px solid #234; }
+#tests-body div { font-size: 18px; padding: 2px 0; }
+#tests-body .f { color: #ff8a8a; } #tests-body .p { color: #9fe8a8; }
+.close { width: 56px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .comp.active, #c-ram.active #wheel, #c-ram.active #ramctl { animation: none; box-shadow: 0 0 0 6px var(--yellow); }
+  .val.chg, .slot.chg, .chip.new, .cell.written { animation-duration: .01s; }
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="wires" width="1920" height="1080" aria-hidden="true"></svg>
+
+  <!-- top bar -->
+  <header id="topbar">
+    <div id="tb-prog"><div class="tb-label" data-s="program"></div><div id="prog-name"></div></div>
+    <div id="pills"><span class="pill" data-ph="FETCH">FETCH</span><span class="arrow">→</span><span class="pill" data-ph="DECODE">DECODE</span><span class="arrow">→</span><span class="pill" data-ph="EXECUTE">EXECUTE</span></div>
+    <div id="tb-step"><div id="step-text"></div><div id="crowd"></div></div>
+    <div id="tb-counters">
+      <div class="ctr"><b id="ct-instr">0</b><span data-s="counters.instr"></span></div>
+      <div class="ctr"><b id="ct-micro">0</b><span data-s="counters.micro"></span></div>
+      <div class="ctr"><b id="ct-clicks">0</b><span data-s="counters.clicks"></span></div>
+    </div>
+    <button id="menu-btn" aria-label="Teacher menu (hold 1 second)" title="Teacher menu – hold for 1 second">☰<i id="menu-prog"></i></button>
+  </header>
+
+  <!-- CPU chip -->
+  <div id="chip"><span id="chip-label">CPU</span></div>
+
+  <!-- left column: Control Unit, Program Counter, Instruction Register + Decoder -->
+  <div class="comp" id="c-cu" data-comp="cu" data-l="cu">
+    <span class="badge" data-badge="cu"></span>
+    <div class="cu-head">
+      <div class="col tight"><div class="ctitle"><span data-s="comps.cu"></span><span id="cu-next"></span></div><div id="cu-phase" class="mono"></div></div>
+      <div id="cu-dec" class="mono">—</div>
+    </div>
+    <div class="grid4" id="cu-grid">
+      <button data-act="cu.read"></button><button data-act="cu.write"></button><button data-act="cu.in"></button><button data-act="cu.out"></button>
+      <button data-act="cu.alu"></button><button data-act="cu.taken"></button><button data-act="cu.nottaken"></button><button data-act="cu.halt"></button>
+    </div>
+  </div>
+
+  <div class="comp" id="c-pc" data-comp="pc" data-l="pc">
+    <span class="badge" data-badge="pc"></span>
+    <div class="ctitle"><span data-s="comps.pc"></span></div>
+    <div class="row">
+      <div class="vbox"><div class="val v2" id="v-pc">00</div><div class="was" id="w-pc"></div></div>
+      <button data-act="pc.toMar" class="grow"></button>
+      <input class="num" id="in-pc" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="New PC value"><button data-act="pc.set"></button>
+    </div>
+  </div>
+
+  <div class="comp" id="c-ir" data-comp="ir" data-l="ir">
+    <span class="badge" data-badge="ir"></span>
+    <div class="row fill">
+      <div class="col tight">
+        <div class="ctitle"><span data-s="comps.ir"></span></div>
+        <div class="row tight"><div class="vbox"><div class="val v3" id="v-ir"><span id="ir-op">0</span><span class="irsep">|</span><span id="ir-opd">00</span></div><div class="was" id="w-ir"></div></div><div id="ir-mn" class="mono">?</div></div>
+      </div>
+      <div class="grid2 grow irgrid"><button data-act="ir.latch" class="span2"></button><button data-act="ir.toMar"></button><button data-act="ir.toPc"></button></div>
+    </div>
+    <div class="grid6" id="dec-grid"></div>
+    <div class="row"><label class="oplabel" for="in-dec" data-s="decOperand"></label><input class="num" id="in-dec" inputmode="numeric" maxlength="2" autocomplete="off"><button data-act="ir.decode" class="grow"></button></div>
+  </div>
+
+  <!-- right column (next to the buses): Accumulator, MAR, MDR, ALU -->
+  <div class="comp" id="c-acc" data-comp="acc" data-l="acc">
+    <span class="badge" data-badge="acc"></span>
+    <div class="row fill">
+      <div class="col tight left acc">
+        <div class="ctitle"><span data-s="comps.acc"></span></div>
+        <div class="row tight">
+          <div class="vbox"><div class="val v3" id="v-acc">000</div><div class="was" id="w-acc"></div></div>
+          <div class="nbox" id="n-box"><span class="lamp" id="n-lamp">N</span><span class="ncap" data-s="nCaption"></span></div>
+        </div>
+        <span class="ovf" id="ovf"></span>
+      </div>
+      <div class="grid2 grow accgrid">
+        <button data-act="acc.fromMdr"></button><button data-act="acc.toMdr"></button>
+        <button data-act="acc.toAlu"></button><button data-act="acc.latchResult"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="comp" id="c-mar" data-comp="mar" data-l="mar">
+    <span class="badge" data-badge="mar"></span>
+    <div class="row fill">
+      <div class="ctitle side"><span data-s="comps.mar"></span></div>
+      <div class="vbox"><div class="val v2" id="v-mar">00</div><div class="was" id="w-mar"></div></div>
+      <button data-act="mar.toBus" class="grow bottom"></button>
+    </div>
+  </div>
+
+  <div class="comp" id="c-mdr" data-comp="mdr" data-l="mdr">
+    <span class="badge" data-badge="mdr"></span>
+    <div class="row fill">
+      <div class="col tight left narrow">
+        <div class="ctitle"><span data-s="comps.mdr"></span></div>
+        <div class="vbox"><div class="val v3" id="v-mdr">000</div><div class="was" id="w-mdr"></div></div>
+      </div>
+      <div class="grid2 grow mdrgrid"><button data-act="mdr.latch"></button><button data-act="mdr.toBus"></button><button data-act="mdr.toAlu" class="span2"></button></div>
+    </div>
+  </div>
+
+  <div class="comp" id="c-alu" data-comp="alu" data-l="alu">
+    <span class="badge" data-badge="alu"></span>
+    <div class="ctitle"><span><span data-s="comps.alu"></span> <span class="alu-io" data-s="aluIO"></span></span></div>
+    <div id="alu-ops"></div>
+    <div id="alu-expr" class="mono"><span id="v-aluA" class="slot">---</span><span id="v-aluOp" class="aop">?</span><span id="v-aluB" class="slot">---</span><span class="aop">=</span><span id="v-aluR" class="slot res">?</span></div>
+    <div class="row"><input class="num n3" id="in-alu" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="ALU result"><button id="alu-n" data-act="alu.n" class="ntoggle"></button><button data-act="alu.compute" class="grow"></button></div>
+  </div>
+
+  <!-- buses -->
+  <div id="buses"></div>
+
+  <!-- feedback / demo panel -->
+  <div id="msgpanel" data-l="msg">
+    <div id="mode-line"></div>
+    <div id="msg" role="status" aria-live="polite"></div>
+    <div class="row" id="msg-actions"><button id="b-hint" class="hidden"></button><button id="b-answer" class="hidden"></button></div>
+    <div class="row hidden" id="demo-bar">
+      <button id="demo-play" aria-label="Play or pause demo">▶</button>
+      <button id="demo-step" aria-label="One step">⏭</button>
+      <input type="range" id="demo-speed" min="150" max="2500" step="50" aria-label="Demo delay">
+    </div>
+  </div>
+
+  <!-- RAM -->
+  <div class="comp" id="c-ram" data-comp="ram" data-l="ram">
+    <div id="wheel"><div id="wheel-inner"></div><div id="head"><span id="head-tag"></span></div></div>
+    <div id="ramctl">
+      <div class="ctitle col"><span data-s="comps.ram"></span><span class="badge" data-badge="ram"></span></div>
+      <button id="w-up" class="wbtn" data-wheel="-1" aria-label="Wheel up">▲</button>
+      <button data-act="ram.read" class="rambtn"></button>
+      <button data-act="ram.write" class="rambtn"></button>
+      <button id="w-down" class="wbtn" data-wheel="1" aria-label="Wheel down">▼</button>
+      <div id="clicks"><b id="ram-clicks">0</b><span data-s="counters.clicks"></span></div>
+    </div>
+  </div>
+
+  <!-- bottom strip -->
+  <div class="comp" id="c-in" data-comp="in" data-l="input">
+    <div class="ctitle"><span data-s="comps.in"></span><span class="badge" data-badge="in"></span></div>
+    <div class="tray" id="in-tray"></div>
+    <div class="row"><input class="num n3" id="in-io" inputmode="numeric" maxlength="3" autocomplete="off" aria-label="Input number"><button id="b-add" data-act="io.add"></button><button data-act="io.send" class="grow"></button></div>
+  </div>
+  <div class="comp" id="c-out" data-comp="out" data-l="output">
+    <div class="ctitle"><span data-s="comps.out"></span><span class="badge" data-badge="out"></span></div>
+    <div class="tray" id="out-tray"></div>
+    <div class="row"><button data-act="io.print" class="grow"></button></div>
+  </div>
+  <div class="comp" id="c-storage" data-comp="storage" data-l="storage">
+    <div class="ctitle"><span><span class="disk">🖴</span> <span data-s="comps.storage"></span></span><span class="badge" data-badge="storage"></span></div>
+    <div id="disk-list"></div>
+  </div>
+
+  <div id="fx"></div>
+
+  <!-- dialogs -->
+  <div class="overlay hidden" id="dlg-menu" role="dialog" aria-modal="true" aria-label="Teacher menu">
+    <div class="dialog" id="menu-dialog">
+      <div class="dhead"><h2>Teacher menu</h2><button class="close" data-close>✕</button></div>
+      <div class="mgrid">
+        <section>
+          <h3>Mode</h3>
+          <div class="seg" id="m-mode"><button data-mode="guided">Guided</button><button data-mode="demo">Demo</button><button data-mode="assist">Step-assist</button></div>
+          <p class="small" id="assist-note">Step-assist: the app plays every role that is <b>not</b> ticked.</p>
+          <div id="m-played" class="checks"></div>
+        </section>
+        <section>
+          <h3>Program</h3>
+          <div class="row"><select id="m-prog"></select><button id="m-load">Load</button></div>
+          <div class="row"><button id="m-editor">Programs editor…</button><button id="m-reset">Reset machine</button><button id="m-clear">Clear all</button></div>
+          <h3>Run</h3>
+          <div class="row"><button id="m-undo">↶ Undo</button><button id="m-redo">↷ Redo</button><button id="m-skip">Skip to next instruction</button><button id="m-run">Run to HALT</button></div>
+        </section>
+        <section>
+          <h3>Roles</h3>
+          <div class="seg" id="m-preset"><button data-preset="4">4 students</button><button data-preset="6">6 students</button><button data-preset="8">8 students</button></div>
+          <div id="m-names"></div>
+        </section>
+        <section>
+          <h3>Settings</h3>
+          <div class="checks">
+            <label><input type="checkbox" id="s-hints"> Hints</label>
+            <label><input type="checkbox" id="s-sound"> Sounds</label>
+            <label><input type="checkbox" id="s-fastwheel"> Fast wheel (ignore click cost)</label>
+            <label><input type="checkbox" id="s-crowd"> Crowd prediction question</label>
+            <label><input type="checkbox" id="s-space"> Space key performs the current step</label>
+            <label><input type="checkbox" id="s-editmem"> Edit memory (in RAM overview)</label>
+          </div>
+          <div class="row"><span>Animation</span><div class="seg" id="s-speed"><button data-speed="0">Off</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></div></div>
+          <div class="row"><button id="m-overview">RAM overview…</button><button id="m-full">Full screen</button><a class="btnlink" href="handout.html" target="_blank" rel="noopener">Print handout</a><a class="btnlink" href="blank-panel.html" target="_blank" rel="noopener">Blank panel (test)</a><button id="m-tests">Self-tests</button></div>
+        </section>
+      </div>
+      <p class="small">Keys: Space = perform current step (if enabled) · Ctrl+Z / Ctrl+Y = undo / redo · ↑/↓ = RAM wheel · F = full screen · Esc = close</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="dlg-editor" role="dialog" aria-modal="true" aria-label="Programs editor">
+    <div class="dialog wide">
+      <div class="dhead"><h2>Programs editor</h2><button class="close" data-close>✕</button></div>
+      <div class="row"><label for="ed-name">Name</label><input id="ed-name" class="text grow"><select id="ed-open"></select></div>
+      <div class="edpanes">
+        <textarea id="ed-src" spellcheck="false" aria-label="LMC assembly"></textarea>
+        <div id="ed-listing" class="mono"></div>
+      </div>
+      <div id="ed-errors"></div>
+      <div class="row">
+        <button id="ed-asm">Assemble</button><button id="ed-load">Load into RAM</button><button id="ed-save">Save to Storage</button>
+        <button id="ed-export">Export .lmc</button><button id="ed-import">Import .lmc</button><input type="file" id="ed-file" accept=".lmc,.txt" class="hidden">
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="dlg-ram" role="dialog" aria-modal="true" aria-label="RAM overview">
+    <div class="dialog">
+      <div class="dhead"><h2>RAM overview</h2><button class="close" data-close>✕</button></div>
+      <div id="ram-grid" class="mono"></div>
+      <p class="small" id="ram-note"></p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="dlg-summary" role="dialog" aria-modal="true" aria-label="Summary">
+    <div class="dialog">
+      <div class="dhead"><h2 id="sum-title"></h2><button class="close" data-close>✕</button></div>
+      <div id="sum-body"></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="dlg-tests" role="dialog" aria-modal="true" aria-label="Self-tests">
+    <div class="dialog wide">
+      <div class="dhead"><h2>Self-tests</h2><button class="close" data-close>✕</button></div>
+      <div id="tests-body" class="mono"></div>
+    </div>
+  </div>
+</div>
+<script id="lmc-core">
+'use strict';
+/* ==========================================================================
+   STRINGS – every user-facing string lives here so it can be translated.
+   ========================================================================== */
+const STRINGS = {
+  appTitle: 'CPU Simulator – Little Man Computer',
+  program: 'Program',
+  noProgram: '(no program loaded)',
+  roles: { CU: 'Control Unit', PC: 'Program Counter', IR: 'Instruction Register', MI: 'Memory Interface',
+           RAM: 'RAM', ALU: 'ALU', ACC: 'Accumulator', IO: 'I/O' },
+  roleShort: { CU: 'CU', PC: 'PC', IR: 'IR', MI: 'MAR/MDR', RAM: 'RAM', ALU: 'ALU', ACC: 'ACC', IO: 'I/O' },
+  comps: { cu: 'Control Unit', pc: 'Program Counter (PC)', ir: 'Instruction Register (IR)',
+           dec: 'Decoder', mar: 'MAR', mdr: 'MDR', acc: 'Accumulator (ACC)',
+           alu: 'ALU', ram: 'RAM', in: 'INPUT', out: 'OUTPUT', storage: 'Storage (disk)', cpu: 'CPU' },
+  phases: { FETCH: 'FETCH', DECODE: 'DECODE', EXECUTE: 'EXECUTE', HALTED: 'HALTED' },
+  stepOf: 'step {i}/{n}',
+  counters: { instr: 'Instructions', micro: 'Micro-steps', clicks: 'Wheel clicks' },
+  buses: { addr: 'ADDRESS BUS', data: 'DATA BUS', ctrl: 'CONTROL BUS' },
+  signals: ['READ', 'WRITE', 'IN', 'OUT', 'ACK', 'HALT'],
+  emptyBus: '––',
+  headLabel: 'HEAD',
+  was: 'was {v}',
+  overflow: 'overflow',
+  nFlag: 'N',
+  nCaption: 'negative',
+  decOperand: 'Decoder · operand',
+  aluIO: 'A ← ACC · B ← MDR',
+  nTitle: 'N = Negative flag. It lights when a SUB result went below zero (the ACC then shows the wrapped value, e.g. 995 for −5). LDA, ADD and INP switch it off. BRZ and BRP look at it.',
+  next: 'next: {who}',
+  notInLmc: 'not in LMC',
+  btn: {
+    'cu.read': 'READ', 'cu.write': 'WRITE', 'cu.in': 'IN', 'cu.out': 'OUT',
+    'cu.alu': 'ALU', 'cu.taken': 'Branch taken', 'cu.nottaken': 'Not taken',
+    'cu.halt': 'HALT',
+    'pc.toMar': 'Send to MAR', 'pc.set': 'Set',
+    'ir.latch': 'Latch from MDR', 'ir.toMar': 'Operand → MAR', 'ir.toPc': 'Operand → PC', 'ir.decode': 'Decode ✓',
+    'mar.toBus': 'Put on address bus',
+    'mdr.latch': 'Latch from data bus', 'mdr.toBus': 'Put on data bus', 'mdr.toAlu': 'Send to ALU B',
+    'acc.fromMdr': 'Latch from MDR', 'acc.latchResult': 'Latch ALU result',
+    'acc.toMdr': 'Send to MDR', 'acc.toAlu': 'Send to ALU A',
+    'alu.compute': 'Compute', nOn: 'N on', nOff: 'N off',
+    'ram.read': 'Place value on data bus', 'ram.write': 'Store value from data bus',
+    'io.send': 'Send to data bus', 'io.print': 'Print', add: 'Add', load: 'Load',
+    hint: 'Hint', answer: 'Show answer', up: '▲', down: '▼',
+  },
+  prompts: {
+    F_PC: 'Program Counter: send the PC to the MAR',
+    MAR: 'Memory Interface: put the MAR address on the address bus',
+    READ: 'Control Unit: put READ on the control bus',
+    RAMREAD: 'RAM: turn the wheel to the MAR address and place the value on the data bus',
+    MDR: 'Memory Interface: latch the value from the data bus into the MDR',
+    F_IR: 'Instruction Register: latch the instruction from the MDR',
+    F_INC: 'Program Counter: type PC + 1 and press Set',
+    D_DEC: 'Decoder: pick the instruction name and type its operand',
+    X_IRMAR: 'Instruction Register: send the operand to the MAR',
+    LDA_ACC: 'Accumulator: latch the value from the MDR',
+    STA_ACC: 'Accumulator: send the ACC to the MDR',
+    STA_BUS: 'Memory Interface: put the MDR value on the data bus',
+    WRITE: 'Control Unit: put WRITE on the control bus',
+    RAMWRITE: 'RAM: turn the wheel to the MAR address and store the value from the data bus',
+    ACC_TOALU: 'Accumulator: send the ACC to ALU input A',
+    MDR_TOALU: 'Memory Interface: send the MDR to ALU input B',
+    ALU_OP: 'Control Unit: tell the ALU to calculate',
+    ALU_COMPUTE: 'ALU: type the result (switch N on if negative) and press Compute',
+    ACC_RESULT: 'Accumulator: latch the ALU result',
+    INP_IN: 'Control Unit: put IN on the control bus',
+    INP_SEND: 'I/O: send the next INPUT number to the data bus',
+    OUT_OUT: 'Control Unit: put OUT on the control bus',
+    OUT_BUS: 'Memory Interface: put the MDR value on the data bus for OUTPUT',
+    OUT_PRINT: 'I/O: print the value from the data bus',
+    BR_DECIDE: 'Control Unit: check ACC and the N lamp – is the branch taken?',
+    BR_IRPC: 'Instruction Register: send the operand to the PC',
+    BR_PCSET: 'Program Counter: check the branch target from the IR and press Set',
+    HLT: 'Control Unit: press HALT',
+    ILLEGAL: 'Control Unit: this code is not an instruction – press HALT',
+    finished: 'Program finished',
+    illegalStop: 'Machine stopped: illegal instruction',
+    empty: 'Load a program from Storage to begin',
+  },
+  hints: {
+    F_PC: 'The address of the next instruction is in the PC ({pc}). Send it to the MAR.',
+    MAR: 'The MAR now holds the address ({mar}). Put it on the address bus so RAM can see it.',
+    READ: 'To get a value out of RAM the Control Unit sends READ.',
+    RAMREAD: 'Turn the wheel to address {mar} (the head turns green), then place the value on the data bus.',
+    MDR: 'Values that arrive on the data bus are latched into the MDR.',
+    F_IR: 'The instruction is now in the MDR – copy it into the IR.',
+    F_INC: 'The PC is {pc}. The next instruction is at {pc} + 1.',
+    D_DEC: 'First digit {d} is the opcode – look it up in the table. The last two digits ({xx}) are the operand.',
+    X_IRMAR: 'The operand {xx} is an address. Send it to the MAR.',
+    LDA_ACC: 'Copy the value that is now in the MDR into the ACC.',
+    STA_ACC: 'Only the MDR talks to the data bus – first copy the ACC into the MDR.',
+    STA_BUS: 'Put the MDR value on the data bus so RAM can store it.',
+    WRITE: 'To store a value in RAM the Control Unit sends WRITE.',
+    RAMWRITE: 'Turn the wheel to address {mar}, then store the value from the data bus.',
+    ACC_TOALU: 'ALU input A comes from the ACC.',
+    MDR_TOALU: 'ALU input B comes from the MDR.',
+    ALU_OP: 'The instruction is {mn}: tell the ALU to calculate (it does {mn} because of the instruction).',
+    ALU_COMPUTE: 'A = {a}, B = {b}, operation = {op}. Results wrap around at 1000; a negative SUB result also needs N on.',
+    ACC_RESULT: 'The ALU result goes back into the ACC.',
+    INP_IN: 'INP needs a number from the INPUT – signal IN.',
+    INP_SEND: 'Send the first number in the INPUT tray to the data bus – the MDR will pick it up.',
+    OUT_OUT: 'OUT prints the ACC – signal OUT.',
+    OUT_BUS: 'Only the MDR talks to the data bus – put its value there so the OUTPUT can print it.',
+    OUT_PRINT: 'Print the value that is on the data bus.',
+    BR_DECIDE: 'ACC = {acc}, N = {n}. BRZ branches if ACC = 0 and N is off; BRP branches if N is off.',
+    BR_IRPC: 'The operand {xx} is the branch target. Send it to the PC.',
+    BR_PCSET: 'The IR delivered {xx} into your box. That is the new PC – press Set.',
+    HLT: '000 means stop.',
+    ILLEGAL: '{code} is not in the instruction table – the machine must stop.',
+  },
+  answers: {
+    press: 'Press “{label}”.',
+    pcSet: 'Type {v} and press Set.',
+    decode: 'Pick {mn} and type operand {op}.',
+    decodeNoOp: 'Pick {mn} and leave the operand blank.',
+    alu: 'Type {v}, switch N {n}, then press Compute.',
+    ram: 'Turn the wheel to {mar}, then press “{label}”.',
+    send: 'Press “{label}” (value {v}).',
+  },
+  msgs: {
+    notTurn: 'Not your turn – it’s the {role}’s turn',
+    wrongAction: 'Not the right action for this step – try again',
+    wrongValue: 'That value is not right – try again',
+    wrongName: 'Wrong instruction name – try again',
+    wrongOperand: 'Wrong operand – try again',
+    blankOperand: 'This instruction has no operand – leave the box blank',
+    wrongFlag: 'Check the N flag – try again',
+    invalidNumber: 'Type a whole number from 0 to 999',
+    invalidAddress: 'Type an address from 0 to 99',
+    pickMn: 'Pick an instruction name first',
+    correct: '✓ Correct',
+    head: 'Turn the wheel until the head address equals the MAR (green)',
+    signal: 'The control bus does not carry the matching signal',
+    halted: 'The machine has stopped – reset or load a program',
+    needInput: 'The INPUT tray is empty – type a number and press Add',
+    loaded: 'Loaded “{name}” from storage into RAM',
+    reset: 'Machine reset – program kept',
+    cleared: 'Everything cleared',
+    illegal: 'Illegal instruction {code} at address {addr} – the machine stopped. Only codes from the instruction table can run.',
+    wheelLocked: 'Only the RAM can turn the wheel, and only on its turn',
+    undo: 'Undone', redo: 'Redone', nothingUndo: 'Nothing to undo', nothingRedo: 'Nothing to redo',
+    crowdQ: 'Class: what will {label} be after this step?',
+    crowdA: 'Answer: {label} = {value}',
+    noProgram: 'Load a program first',
+    loadLocked: 'Programs can be loaded from disk before the run starts or after HALT (teacher menu: any time)',
+    saved: 'Saved “{name}” to Storage',
+    storageFail: 'Could not save – browser storage is not available',
+  },
+  asm: {
+    unknownMnemonic: 'unknown mnemonic “{mn}”',
+    unknownLabel: 'unknown label “{label}”',
+    duplicateLabel: 'duplicate label “{label}”',
+    badLabel: 'invalid label “{label}”',
+    operandRange: 'operand {v} out of range ({min}–{max})',
+    missingOperand: '{mn} needs an operand',
+    unexpectedOperand: '{mn} takes no operand',
+    extra: 'unexpected text “{t}”',
+    missingMnemonic: 'label without an instruction',
+    tooLong: 'program is longer than 100 cells',
+    line: 'Line {n}: {msg}',
+  },
+  summary: { title: 'Program finished', stats: 'Statistics', errors: 'Mistakes per role (for discussion)', noErrors: 'No mistakes – well done!', output: 'Output' },
+};
+
+/* ==========================================================================
+   LMC core: machine state, micro-step engine, assembler, sample programs.
+   Pure functions – no DOM. act() never mutates the state it is given.
+   ========================================================================== */
+const LMC = (() => {
+  const S = STRINGS;
+  const fmt = (t, v = {}) => String(t).replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
+  const pad2 = n => (n == null ? S.emptyBus : String(n).padStart(2, '0'));
+  const pad3 = n => (n == null ? S.emptyBus : String(n).padStart(3, '0'));
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const NEED_INPUT = { needInput: true };
+
+  const MNEMONICS = ['ADD', 'SUB', 'STA', 'LDA', 'BRA', 'BRZ', 'BRP', 'INP', 'OUT', 'HLT'];
+  const DECODE_NAMES = [...MNEMONICS, 'ILLEGAL'];
+  const ALL_MN = new Set([...MNEMONICS, 'DAT']);
+  const OPBASE = { ADD: 100, SUB: 200, STA: 300, LDA: 500, BRA: 600, BRZ: 700, BRP: 800, INP: 901, OUT: 902, HLT: 0 };
+  const NO_OPERAND = new Set(['INP', 'OUT', 'HLT', 'ILLEGAL']);
+  const OPCODE_MN = { 1: 'ADD', 2: 'SUB', 3: 'STA', 5: 'LDA', 6: 'BRA', 7: 'BRZ', 8: 'BRP' };
+
+  function decode(code) {
+    if (code === 0) return { mn: 'HLT', op: null };
+    if (code === 901) return { mn: 'INP', op: null };
+    if (code === 902) return { mn: 'OUT', op: null };
+    const mn = OPCODE_MN[Math.floor(code / 100)];
+    return mn ? { mn, op: code % 100 } : { mn: 'ILLEGAL', op: null };
+  }
+  const decodedText = d => (d ? (d.op == null ? d.mn : `${d.mn} ${pad2(d.op)}`) : '?');
+
+  // Parse a typed whole number; returns NaN for anything else.
+  function num(v) {
+    if (typeof v === 'number') return Number.isInteger(v) ? v : NaN;
+    const t = String(v ?? '').trim();
+    return /^\d{1,3}$/.test(t) ? parseInt(t, 10) : NaN;
+  }
+
+  function newMachine() {
+    return {
+      ram: Array(100).fill(0),
+      program: { name: '', src: '', cells: Array(100).fill(0), size: 0 },
+      pc: 0, ir: 0, mar: 0, mdr: 0, acc: 0, n: false, overflow: false,
+      bus: { addr: null, addrDir: null, data: null, dataDir: null, ctrl: null, ctrlDir: null },
+      alu: { a: null, b: null, op: null, result: null, n: false, overflow: false },
+      path: null, head: 0, input: [], output: [],
+      phase: 'FETCH', stepNo: 0, decoded: null, branch: null, fetchAddr: null,
+      count: { instr: 0, micro: 0, clicks: 0 }, errors: {}, attempts: 0,
+      halted: false, haltMsg: null, lastWritten: null, started: false, loaded: false,
+    };
+  }
+
+  function load(prev, cells, name = '', src = '', keepInput = false) {
+    const s = newMachine();
+    const c = Array(100).fill(0);
+    cells.forEach((v, i) => { if (i < 100) c[i] = v; });
+    let size = 0; c.forEach((v, i) => { if (v) size = i + 1; });
+    s.ram = c.slice();
+    s.program = { name, src, cells: c.slice(), size: Math.max(size, cells.length) };
+    s.loaded = true;
+    if (keepInput && prev) s.input = prev.input.slice();
+    return s;
+  }
+  const reset = s => load(s, s.program.cells, s.program.name, s.program.src, true);
+
+  /* ---------------- micro-step definitions (data) ----------------
+     comp: component that is active · role: student role · action: expected button
+     go: CU must press Go first (when gating is on) · expect: payload for auto-play
+     check: validate payload → error key or null · effect: mutate the (cloned) state
+     pq/pa: crowd-prediction label and answer (evaluated after the step)          */
+  const tok = (ev, path, value, kind = 'int') => ev.push({ type: 'token', path, value: String(value), kind });
+
+  const ST = {
+    F_PC: { id: 'F_PC', comp: 'pc', role: 'PC', action: 'pc.toMar', pq: () => 'MAR', pa: s => pad2(s.mar),
+      effect(s, p, ev) { s.started = true; s.path = null; s.fetchAddr = s.pc; s.mar = s.pc; tok(ev, 'pc-mar', pad2(s.pc)); } },
+    MAR: { id: 'MAR', comp: 'mar', role: 'MI', action: 'mar.toBus', pq: () => 'the address bus', pa: s => pad2(s.bus.addr),
+      effect(s, p, ev) { s.bus.addr = s.mar; s.bus.addrDir = 'toRam'; tok(ev, 'mar-ram', pad2(s.mar), 'addr'); } },
+    READ: { id: 'READ', comp: 'cu', role: 'CU', action: 'cu.read',
+      effect(s, p, ev) { s.bus.ctrl = 'READ'; s.bus.ctrlDir = 'toRam'; tok(ev, 'cu-ram', 'READ', 'ctrl'); } },
+    RAMREAD: { id: 'RAMREAD', comp: 'ram', role: 'RAM', action: 'ram.read', pq: () => 'the data bus', pa: s => pad3(s.bus.data),
+      effect(s, p, ev) {
+        s.bus.data = s.ram[s.mar]; s.bus.dataDir = 'toCpu'; tok(ev, 'ram-bus', pad3(s.bus.data), 'data');
+        s.bus.ctrl = 'ACK'; s.bus.ctrlDir = 'toCpu'; tok(ev, 'ram-cu', 'ACK', 'ctrl');
+      } },
+    MDR: { id: 'MDR', comp: 'mdr', role: 'MI', action: 'mdr.latch', pq: () => 'MDR', pa: s => pad3(s.mdr),
+      effect(s, p, ev) { s.mdr = s.bus.data; tok(ev, s.bus.dataDir === 'fromIO' ? 'iobus-mdr' : 'bus-mdr', pad3(s.mdr), 'data'); } },
+    F_IR: { id: 'F_IR', comp: 'ir', role: 'IR', action: 'ir.latch', pq: () => 'IR', pa: s => pad3(s.ir),
+      effect(s, p, ev) { s.ir = s.mdr; s.decoded = null; tok(ev, 'mdr-ir', pad3(s.mdr)); } },
+    F_INC: { id: 'F_INC', comp: 'pc', role: 'PC', action: 'pc.set', pq: () => 'PC', pa: s => pad2(s.pc),
+      expect: s => (s.pc + 1) % 100,
+      check(s, p) { const v = num(p); if (isNaN(v) || v > 99) return 'invalidAddress'; return v === (s.pc + 1) % 100 ? null : 'wrongValue'; },
+      effect(s) { s.pc = (s.pc + 1) % 100; } },
+    D_DEC: { id: 'D_DEC', comp: 'ir', role: 'IR', action: 'ir.decode', pq: () => 'the instruction', pa: s => decodedText(s.decoded),
+      expect: s => { const d = decode(s.ir); return { mn: d.mn, op: d.op == null ? '' : pad2(d.op) }; },
+      check(s, p) {
+        if (!p || !p.mn) return 'pickMn';
+        const d = decode(s.ir);
+        if (p.mn !== d.mn) return 'wrongName';
+        const t = String(p.op ?? '').trim();
+        if (d.mn === 'ILLEGAL') return null;
+        if (NO_OPERAND.has(d.mn)) return t === '' ? null : 'blankOperand';
+        return num(t) === d.op ? null : 'wrongOperand';
+      },
+      effect(s) { s.decoded = decode(s.ir); } },
+    X_IRMAR: { id: 'X_IRMAR', comp: 'ir', role: 'IR', action: 'ir.toMar', pq: () => 'MAR', pa: s => pad2(s.mar),
+      effect(s, p, ev) { s.mar = s.ir % 100; tok(ev, 'ir-mar', pad2(s.mar)); } },
+    LDA_ACC: { id: 'LDA_ACC', comp: 'acc', role: 'ACC', action: 'acc.fromMdr', pq: () => 'ACC', pa: s => pad3(s.acc),
+      effect(s, p, ev) { s.acc = s.mdr; s.n = false; s.overflow = false; tok(ev, 'mdr-acc', pad3(s.mdr)); } },
+    STA_ACC: { id: 'STA_ACC', comp: 'acc', role: 'ACC', action: 'acc.toMdr', pq: () => 'MDR', pa: s => pad3(s.mdr),
+      effect(s, p, ev) { s.mdr = s.acc; tok(ev, 'acc-mdr', pad3(s.acc)); } },
+    STA_BUS: { id: 'STA_BUS', comp: 'mdr', role: 'MI', action: 'mdr.toBus',
+      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toRam'; tok(ev, 'mdr-bus', pad3(s.mdr), 'data'); } },
+    WRITE: { id: 'WRITE', comp: 'cu', role: 'CU', action: 'cu.write',
+      effect(s, p, ev) { s.bus.ctrl = 'WRITE'; s.bus.ctrlDir = 'toRam'; tok(ev, 'cu-ram', 'WRITE', 'ctrl'); } },
+    RAMWRITE: { id: 'RAMWRITE', comp: 'ram', role: 'RAM', action: 'ram.write', pq: s => `RAM[${pad2(s.mar)}]`, pa: s => pad3(s.ram[s.mar]),
+      effect(s, p, ev) {
+        s.ram[s.mar] = s.bus.data; s.lastWritten = s.mar; tok(ev, 'bus-ram', pad3(s.bus.data), 'data'); ev.push({ type: 'flash', addr: s.mar });
+        s.bus.ctrl = 'ACK'; s.bus.ctrlDir = 'toCpu'; tok(ev, 'ram-cu', 'ACK', 'ctrl');
+      } },
+    ACC_TOALU: { id: 'ACC_TOALU', comp: 'acc', role: 'ACC', action: 'acc.toAlu',
+      effect(s, p, ev) { s.alu = { a: s.acc, b: null, op: null, result: null, n: false, overflow: false }; tok(ev, 'acc-alua', pad3(s.acc)); } },
+    MDR_TOALU: { id: 'MDR_TOALU', comp: 'mdr', role: 'MI', action: 'mdr.toAlu',
+      effect(s, p, ev) { s.alu.b = s.mdr; tok(ev, 'mdr-alub', pad3(s.mdr)); } },
+    ALU_OP: { id: 'ALU_OP', comp: 'cu', role: 'CU', action: 'cu.alu',
+      effect(s, p, ev) { s.alu.op = s.decoded.mn === 'ADD' ? '+' : '−'; tok(ev, 'cu-alu', s.alu.op, 'ctrl'); } },
+    ALU_COMPUTE: { id: 'ALU_COMPUTE', comp: 'alu', role: 'ALU', action: 'alu.compute', pq: () => 'the ALU result', pa: s => pad3(s.alu.result) + (s.alu.n ? ' (N on)' : ''),
+      expect: s => { const r = aluResult(s); return { value: pad3(r.value), n: r.n }; },
+      check(s, p) {
+        const v = num(p && p.value); if (isNaN(v) || v > 999) return 'invalidNumber';
+        const r = aluResult(s);
+        if (v !== r.value) return 'wrongValue';
+        return !!(p && p.n) === r.n ? null : 'wrongFlag';
+      },
+      effect(s) { const r = aluResult(s); s.alu.result = r.value; s.alu.n = r.n; s.alu.overflow = r.overflow; } },
+    ACC_RESULT: { id: 'ACC_RESULT', comp: 'acc', role: 'ACC', action: 'acc.latchResult', pq: () => 'ACC', pa: s => pad3(s.acc),
+      effect(s, p, ev) { s.acc = s.alu.result; s.n = s.alu.n; s.overflow = s.alu.overflow; tok(ev, 'alu-acc', pad3(s.alu.result)); } },
+    INP_IN: { id: 'INP_IN', comp: 'cu', role: 'CU', action: 'cu.in',
+      effect(s, p, ev) { s.bus.ctrl = 'IN'; s.bus.ctrlDir = 'toIO'; tok(ev, 'cu-in', 'IN', 'ctrl'); } },
+    INP_SEND: { id: 'INP_SEND', comp: 'in', role: 'IO', action: 'io.send', pq: () => 'the data bus', pa: s => pad3(s.bus.data),
+      expect: s => (s.input.length ? { value: '' } : NEED_INPUT),
+      check(s, p) { if (s.input.length) return null; const v = num(p && p.value); return isNaN(v) || v > 999 ? 'invalidNumber' : null; },
+      effect(s, p, ev) {
+        const v = s.input.length ? s.input.shift() : num(p.value);
+        s.bus.data = v; s.bus.dataDir = 'fromIO'; tok(ev, 'in-iobus', pad3(v), 'data');
+      } },
+    OUT_OUT: { id: 'OUT_OUT', comp: 'cu', role: 'CU', action: 'cu.out',
+      effect(s, p, ev) { s.bus.ctrl = 'OUT'; s.bus.ctrlDir = 'toIO'; tok(ev, 'cu-out', 'OUT', 'ctrl'); } },
+    OUT_BUS: { id: 'OUT_BUS', comp: 'mdr', role: 'MI', action: 'mdr.toBus',
+      effect(s, p, ev) { s.bus.data = s.mdr; s.bus.dataDir = 'toIO'; tok(ev, 'mdr-iobus', pad3(s.mdr), 'data'); } },
+    OUT_PRINT: { id: 'OUT_PRINT', comp: 'out', role: 'IO', action: 'io.print', pq: () => 'the next OUTPUT', pa: s => pad3(s.output[s.output.length - 1]),
+      effect(s, p, ev) { s.output.push(s.bus.data); tok(ev, 'iobus-out', pad3(s.bus.data), 'data'); ev.push({ type: 'print' }); } },
+    BR_DECIDE: { id: 'BR_DECIDE', comp: 'cu', role: 'CU', action: s => (branchTaken(s) ? 'cu.taken' : 'cu.nottaken'),
+      pq: () => 'the branch decision', pa: s => (s.branch ? 'taken' : 'not taken'),
+      effect(s) { s.branch = branchTaken(s); } },
+    BR_IRPC: { id: 'BR_IRPC', comp: 'ir', role: 'IR', action: 'ir.toPc',
+      effect(s, p, ev) { s.path = { from: 'ir', to: 'pc', value: s.ir % 100 }; tok(ev, 'ir-pcin', pad2(s.ir % 100)); ev.push({ type: 'fill', input: 'in-pc', value: pad2(s.ir % 100) }); } },
+    BR_PCSET: { id: 'BR_PCSET', comp: 'pc', role: 'PC', action: 'pc.set', pq: () => 'PC', pa: s => pad2(s.pc),
+      expect: s => s.path.value,
+      check(s, p) { const v = num(p); if (isNaN(v) || v > 99) return 'invalidAddress'; return v === s.path.value ? null : 'wrongValue'; },
+      effect(s) { s.pc = s.path.value; s.path = null; } },
+    HLT: { id: 'HLT', comp: 'cu', role: 'CU', action: 'cu.halt',
+      effect(s, p, ev) { s.halted = true; s.phase = 'HALTED'; s.bus.ctrl = 'HALT'; s.bus.ctrlDir = null; s.count.instr++; ev.push({ type: 'halt' }); } },
+    ILLEGAL: { id: 'ILLEGAL', comp: 'cu', role: 'CU', action: 'cu.halt',
+      effect(s, p, ev) {
+        s.halted = true; s.phase = 'HALTED'; s.bus.ctrl = 'HALT'; s.bus.ctrlDir = null;
+        s.haltMsg = fmt(S.msgs.illegal, { code: pad3(s.ir), addr: pad2(s.fetchAddr) }); ev.push({ type: 'halt', illegal: true });
+      } },
+  };
+  const taken = st => ({ ...st, when: s => s.branch !== false });
+  const READ_SEQ = [ST.X_IRMAR, ST.MAR, ST.READ, ST.RAMREAD, ST.MDR];
+  const ARITH = [...READ_SEQ, ST.ACC_TOALU, ST.MDR_TOALU, ST.ALU_OP, ST.ALU_COMPUTE, ST.ACC_RESULT];
+  const FETCH = [ST.F_PC, ST.MAR, ST.READ, ST.RAMREAD, ST.MDR, ST.F_IR, ST.F_INC];
+  const DECODE = [ST.D_DEC];
+  const EXEC = {
+    LDA: [...READ_SEQ, ST.LDA_ACC],
+    STA: [ST.X_IRMAR, ST.MAR, ST.STA_ACC, ST.STA_BUS, ST.WRITE, ST.RAMWRITE],
+    ADD: ARITH, SUB: ARITH,
+    INP: [ST.INP_IN, ST.INP_SEND, ST.MDR, ST.LDA_ACC],
+    OUT: [ST.OUT_OUT, ST.STA_ACC, ST.OUT_BUS, ST.OUT_PRINT],
+    BRA: [ST.BR_IRPC, ST.BR_PCSET],
+    BRZ: [ST.BR_DECIDE, taken(ST.BR_IRPC), taken(ST.BR_PCSET)],
+    BRP: [ST.BR_DECIDE, taken(ST.BR_IRPC), taken(ST.BR_PCSET)],
+    HLT: [ST.HLT], ILLEGAL: [ST.ILLEGAL],
+  };
+
+  function aluResult(s) {
+    const a = s.alu.a, b = s.alu.b;
+    if (s.alu.op === '+') { const r = a + b; return { value: r % 1000, n: false, overflow: r > 999 }; }
+    const r = a - b; return { value: ((r % 1000) + 1000) % 1000, n: r < 0, overflow: false };
+  }
+  function branchTaken(s) {
+    const mn = s.decoded.mn;
+    if (mn === 'BRZ') return s.acc === 0 && !s.n;
+    if (mn === 'BRP') return !s.n;
+    return true;
+  }
+
+  function stepList(s) {
+    if (s.phase === 'FETCH') return FETCH;
+    if (s.phase === 'DECODE') return DECODE;
+    if (s.phase === 'EXECUTE') return EXEC[s.decoded.mn].filter(st => !st.when || st.when(s));
+    return [];
+  }
+
+  const compOf = action => {
+    const p = action.split('.')[0];
+    if (action === 'io.send') return 'in';
+    if (action === 'io.print') return 'out';
+    return p;
+  };
+
+  // The requirement for the current micro-step: who is active and what they must do.
+  function current(s, opts = {}) {
+    if (s.halted || !s.loaded) return null;
+    const list = stepList(s), st = list[s.stepNo];
+    if (!st) return null;
+    const action = typeof st.action === 'function' ? st.action(s) : st.action;
+    const req = { id: st.id, step: st, phase: s.phase, idx: s.stepNo + 1, total: list.length,
+                  comp: st.comp, role: st.role, action, prompt: S.prompts[st.id] };
+    return req;
+  }
+
+  function advance(s) {
+    if (s.halted) return;
+    s.attempts = 0; s.stepNo++;
+    if (s.stepNo < stepList(s).length) return;
+    s.stepNo = 0;
+    if (s.phase === 'FETCH') s.phase = 'DECODE';
+    else if (s.phase === 'DECODE') s.phase = 'EXECUTE';
+    else if (s.phase === 'EXECUTE') { s.count.instr++; s.phase = 'FETCH'; s.branch = null; }
+  }
+
+  // Try an action. Returns { ok, state, events, reason, msg, counted }.
+  function act(s, action, payload, opts = {}) {
+    const req = current(s, opts);
+    if (!req) return { ok: false, state: s, reason: 'halted', msg: s.loaded ? S.msgs.halted : S.msgs.noProgram };
+    if (compOf(action) !== req.comp) {
+      return { ok: false, state: s, reason: 'notTurn', msg: fmt(S.msgs.notTurn, { role: S.roles[req.role] }), req };
+    }
+    if (action === 'ram.read' || action === 'ram.write') {
+      if (s.head !== s.mar) return { ok: false, state: s, reason: 'head', msg: S.msgs.head };
+      if (s.bus.ctrl !== (action === 'ram.read' ? 'READ' : 'WRITE')) return { ok: false, state: s, reason: 'signal', msg: S.msgs.signal };
+    }
+    const wrong = key => {
+      const ns = clone(s);
+      ns.errors[req.role] = (ns.errors[req.role] || 0) + 1;
+      ns.attempts++;
+      return { ok: false, state: ns, reason: 'wrong', counted: true, msg: S.msgs[key] || S.msgs.wrongAction, req };
+    };
+    if (action !== req.action) return wrong('wrongAction');
+    if (req.step.check) {
+      const err = req.step.check(s, payload);
+      if (err === 'invalidNumber' || err === 'invalidAddress' || err === 'pickMn') {
+        return { ok: false, state: s, reason: 'invalid', msg: S.msgs[err], req };
+      }
+      if (err) return wrong(err);
+    }
+    const ns = clone(s), events = [];
+    req.step.effect(ns, payload, events);
+    ns.count.micro++;
+    advance(ns);
+    return { ok: true, state: ns, events, req };
+  }
+
+  // Move the RAM wheel one cell (delta ±1). No wrap at 0/99.
+  function wheel(s, delta, countClick = true) {
+    const h = s.head + Math.sign(delta);
+    if (h < 0 || h > 99 || delta === 0) return { state: s, moved: false };
+    const ns = clone(s); ns.head = h; if (countClick) ns.count.clicks++;
+    return { state: ns, moved: true };
+  }
+
+  function expectedPayload(s, req) {
+    return req.step.expect ? req.step.expect(s) : null;
+  }
+
+  // Perform exactly one automatic action (one wheel click, or the expected button).
+  function autoStep(s, opts = {}) {
+    const req = current(s, opts);
+    if (!req) return { ok: false, state: s, reason: 'halted' };
+    if (req.comp === 'ram' && s.head !== s.mar) {
+      const r = wheel(s, s.mar - s.head, opts.countClicks !== false);
+      return { ok: true, state: r.state, wheel: Math.sign(s.mar - s.head), events: [] };
+    }
+    const p = expectedPayload(s, req);
+    if (p === NEED_INPUT) return { ok: false, state: s, reason: 'needInput', msg: S.msgs.needInput };
+    return act(s, req.action, p, opts);
+  }
+
+  // Demo engine: run until HALT (or next instruction), input starvation or a step limit.
+  function run(s, opts = {}, untilNextInstr = false, limit = 200000) {
+    const startInstr = s.count.instr;
+    for (let i = 0; i < limit; i++) {
+      if (s.halted) return { state: s, reason: 'halted' };
+      if (untilNextInstr && s.count.instr > startInstr) return { state: s, reason: 'instr' };
+      const r = autoStep(s, opts);
+      if (!r.ok) return { state: r.state, reason: r.reason, msg: r.msg };
+      s = r.state;
+    }
+    return { state: s, reason: 'limit' };
+  }
+
+  function hint(s, req) {
+    if (!req) return '';
+    const key = req.id;
+    const d = Math.floor(s.ir / 100);
+    return fmt(S.hints[key] || '', {
+      pc: pad2(s.pc), mar: pad2(s.mar), d, xx: pad2(s.ir % 100), mn: s.decoded ? s.decoded.mn : '',
+      a: pad3(s.alu.a), b: pad3(s.alu.b), op: s.alu.op || '?', acc: pad3(s.acc), n: s.n ? 'on' : 'off', code: pad3(s.ir),
+    });
+  }
+
+  function answer(s, req) {
+    if (!req) return '';
+    const label = S.btn[req.action] || req.action;
+    const A = S.answers;
+    switch (req.action) {
+      case 'pc.set': return fmt(A.pcSet, { v: pad2(req.step.expect(s)) });
+      case 'ir.decode': { const e = req.step.expect(s); return fmt(e.op === '' ? A.decodeNoOp : A.decode, e); }
+      case 'alu.compute': { const e = req.step.expect(s); return fmt(A.alu, { v: e.value, n: e.n ? 'on' : 'off' }); }
+      case 'ram.read': case 'ram.write': return fmt(A.ram, { mar: pad2(s.mar), label });
+      case 'io.send': return fmt(A.send, { label, v: s.input.length ? pad3(s.input[0]) : '?' });
+      default: return fmt(A.press, { label });
+    }
+  }
+
+  function phaseText(s, req, withDecoded = true) {
+    if (s.halted) return S.phases.HALTED;
+    const parts = [S.phases[s.phase]];
+    if (withDecoded && s.phase === 'EXECUTE' && s.decoded) parts.push(decodedText(s.decoded));
+    if (req) parts.push(fmt(S.stepOf, { i: req.idx, n: req.total }));
+    return parts.join(' · ');
+  }
+
+  // Non-micro-step state changes (still pure, still recorded in undo history).
+  function addInput(s, v) { const ns = clone(s); ns.input.push(v); return ns; }
+  function removeInput(s, i) { const ns = clone(s); ns.input.splice(i, 1); return ns; }
+  function poke(s, addr, v) { const ns = clone(s); ns.ram[addr] = v; ns.lastWritten = addr; return ns; }
+
+  /* ---------------- assembler ---------------- */
+  function assemble(src) {
+    const A = S.asm, errors = [], items = [], labels = {};
+    const err = (line, key, v) => errors.push({ line, msg: fmt(A[key], v) });
+    String(src).replace(/\r/g, '').split('\n').forEach((raw, i) => {
+      const line = i + 1;
+      let t = raw;
+      const c1 = t.indexOf('//'); if (c1 >= 0) t = t.slice(0, c1);
+      const c2 = t.indexOf(';'); if (c2 >= 0) t = t.slice(0, c2);
+      const tk = t.trim().split(/\s+/).filter(Boolean);
+      if (!tk.length) return;
+      const isMn = x => x != null && ALL_MN.has(x.toUpperCase());
+      let label = null, k = 0;
+      if (!isMn(tk[0])) {
+        if (tk.length === 1) { err(line, 'unknownMnemonic', { mn: tk[0] }); items.push({ line, raw, mn: null }); return; }
+        if (isMn(tk[1]) || tk.length === 3) { label = tk[0]; k = 1; }
+        else { err(line, 'unknownMnemonic', { mn: tk[0] }); items.push({ line, raw, mn: null }); return; }
+      }
+      if (label) {
+        const key = label.toUpperCase();
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(label)) err(line, 'badLabel', { label });
+        else if (key in labels) err(line, 'duplicateLabel', { label });
+        else labels[key] = items.length;
+      }
+      if (!isMn(tk[k])) { err(line, 'unknownMnemonic', { mn: tk[k] }); items.push({ line, raw, mn: null }); return; }
+      if (tk.length > k + 2) err(line, 'extra', { t: tk.slice(k + 2).join(' ') });
+      items.push({ line, raw, label, mn: tk[k].toUpperCase(), operand: tk[k + 1] });
+    });
+    if (items.length > 100) err(items[100].line, 'tooLong', {});
+    const cells = Array(100).fill(0), listing = [];
+    items.slice(0, 100).forEach((it, addr) => {
+      let code = 0;
+      const resolve = (min, max) => {
+        const o = it.operand;
+        if (/^-?\d+$/.test(o)) {
+          const v = parseInt(o, 10);
+          if (v < min || v > max) { err(it.line, 'operandRange', { v, min, max }); return 0; }
+          return v;
+        }
+        const key = o.toUpperCase();
+        if (key in labels) return labels[key];
+        err(it.line, 'unknownLabel', { label: o }); return 0;
+      };
+      if (it.mn === 'DAT') code = it.operand === undefined ? 0 : resolve(0, 999);
+      else if (it.mn && NO_OPERAND.has(it.mn)) {
+        if (it.operand !== undefined) err(it.line, 'unexpectedOperand', { mn: it.mn });
+        code = OPBASE[it.mn];
+      } else if (it.mn) {
+        if (it.operand === undefined) err(it.line, 'missingOperand', { mn: it.mn });
+        else code = OPBASE[it.mn] + resolve(0, 99);
+      }
+      cells[addr] = code;
+      listing.push({ addr, code, line: it.line, src: it.raw.trim() });
+    });
+    errors.sort((a, b) => a.line - b.line);
+    return { ok: errors.length === 0, cells, listing, errors, labels, size: Math.min(items.length, 100) };
+  }
+
+  /* ---------------- built-in programs ---------------- */
+  const SAMPLES = [
+    { name: '1. Warm-up – add two constants', builtin: true, inputs: [], src:
+`      LDA X
+      ADD Y
+      STA Z
+      OUT
+      HLT
+X     DAT 20
+Y     DAT 25
+Z     DAT` },
+    { name: '2. Add two input numbers', builtin: true, inputs: [7, 5], src:
+`      INP
+      STA FIRST
+      INP
+      ADD FIRST
+      OUT
+      HLT
+FIRST DAT` },
+    { name: '3. Countdown', builtin: true, inputs: [3], src:
+`      INP
+LOOP  OUT
+      SUB ONE
+      BRP LOOP
+      HLT
+ONE   DAT 1` },
+    { name: '4. Bigger of two numbers', builtin: true, inputs: [4, 9], src:
+`      INP
+      STA A
+      INP
+      STA B
+      SUB A
+      BRP SHOWB
+      LDA A
+      OUT
+      HLT
+SHOWB LDA B
+      OUT
+      HLT
+A     DAT
+B     DAT` },
+    { name: '5. Multiply by repeated addition', builtin: true, inputs: [3, 4], src:
+`      INP
+      STA A
+      INP
+      STA B
+LOOP  LDA B
+      BRZ DONE
+      SUB ONE
+      STA B
+      LDA RES
+      ADD A
+      STA RES
+      BRA LOOP
+DONE  LDA RES
+      OUT
+      HLT
+A     DAT
+B     DAT
+RES   DAT 0
+ONE   DAT 1` },
+  ];
+
+  /* ---------------- self-tests (assembler + engine, every opcode) ---------------- */
+  function runTests() {
+    const results = [];
+    const t = (name, fn) => { try { fn(); results.push({ name, ok: true }); } catch (e) { results.push({ name, ok: false, err: e.message }); } };
+    const eq = (a, b, m = '') => { const A = JSON.stringify(a), B = JSON.stringify(b); if (A !== B) throw new Error(`${m} expected ${B}, got ${A}`); };
+    const ok = (c, m) => { if (!c) throw new Error(m || 'assertion failed'); };
+    const machine = (src, inputs = []) => { const a = assemble(src); if (!a.ok) throw new Error(a.errors.map(e => e.line + ': ' + e.msg).join('; ')); const s = load(null, a.cells, 'test', src); s.input = inputs.slice(); return s; };
+    const runSrc = (src, inputs, opts = {}) => run(machine(src, inputs), opts).state;
+    // Drive the machine with expected actions until predicate(state) holds.
+    const until = (s, pred, opts = {}) => { for (let i = 0; i < 5000 && !pred(s); i++) { const r = autoStep(s, opts); if (!r.ok) throw new Error('stuck: ' + r.reason); s = r.state; } return s; };
+
+    // --- assembler ---
+    t('assembler: all samples assemble', () => SAMPLES.forEach(p => { const a = assemble(p.src); ok(a.ok, p.name + ': ' + JSON.stringify(a.errors)); }));
+    t('assembler: warm-up machine code', () => eq(assemble(SAMPLES[0].src).cells.slice(0, 8), [505, 106, 307, 902, 0, 20, 25, 0]));
+    t('assembler: countdown machine code', () => eq(assemble(SAMPLES[2].src).cells.slice(0, 6), [901, 902, 205, 801, 0, 1]));
+    t('assembler: unknown label has line number', () => {
+      const a = assemble('LDA X\nADD NOPE\nHLT\nX DAT 1'); ok(!a.ok); eq(a.errors[0].line, 2); ok(/NOPE/.test(a.errors[0].msg));
+    });
+    t('assembler: unknown mnemonic', () => { const a = assemble('  LDB 5\nHLT'); eq(a.errors[0].line, 1); ok(/LDB/.test(a.errors[0].msg)); });
+    t('assembler: duplicate label', () => { const a = assemble('A DAT 1\nA DAT 2'); eq(a.errors[0].line, 2); ok(/duplicate/.test(a.errors[0].msg)); });
+    t('assembler: operand out of range', () => { const a = assemble('LDA 100\nX DAT 1000'); eq(a.errors.map(e => e.line), [1, 2]); });
+    t('assembler: missing / unexpected operand', () => { const a = assemble('LDA\nOUT 5'); eq(a.errors.map(e => e.line), [1, 2]); });
+    t('assembler: program longer than 100 cells', () => { const a = assemble(Array(101).fill('DAT 1').join('\n')); ok(!a.ok); eq(a.errors[0].line, 101); });
+    t('assembler: comments, case, numeric operands', () => {
+      const a = assemble('lda 5 // load\n  add six ; plus\nout\nhlt\n\nfive dat 7\nsix  DAT 8'); ok(a.ok, JSON.stringify(a.errors)); eq(a.cells.slice(0, 7), [505, 105, 902, 0, 7, 8, 0]);
+    });
+    t('assembler: listing has address, code and source', () => { const a = assemble(SAMPLES[0].src); eq(a.listing[1], { addr: 1, code: 106, line: 2, src: 'ADD Y' }); });
+
+    // --- decode table ---
+    t('decode: every opcode', () => {
+      eq(decode(105), { mn: 'ADD', op: 5 }); eq(decode(299), { mn: 'SUB', op: 99 }); eq(decode(307), { mn: 'STA', op: 7 });
+      eq(decode(500), { mn: 'LDA', op: 0 }); eq(decode(612), { mn: 'BRA', op: 12 }); eq(decode(701), { mn: 'BRZ', op: 1 });
+      eq(decode(842), { mn: 'BRP', op: 42 }); eq(decode(901).mn, 'INP'); eq(decode(902).mn, 'OUT'); eq(decode(0).mn, 'HLT');
+      ['ILLEGAL', 'ILLEGAL', 'ILLEGAL', 'ILLEGAL'].forEach((m, i) => eq(decode([405, 900, 999, 1][i]).mn, m));
+    });
+
+    // --- demo engine: the five samples (acceptance criteria) ---
+    t('demo: warm-up outputs 45', () => { const s = runSrc(SAMPLES[0].src, []); ok(s.halted); eq(s.output, [45]); eq(s.ram[7], 45); eq(s.count.instr, 5); });
+    t('demo: add two inputs', () => eq(runSrc(SAMPLES[1].src, [7, 5]).output, [12]));
+    t('demo: countdown from 3', () => eq(runSrc(SAMPLES[2].src, [3]).output, [3, 2, 1, 0]));
+    t('demo: bigger of two (both orders)', () => { eq(runSrc(SAMPLES[3].src, [4, 9]).output, [9]); eq(runSrc(SAMPLES[3].src, [9, 4]).output, [9]); eq(runSrc(SAMPLES[3].src, [6, 6]).output, [6]); });
+    t('demo: multiply 3 × 4 = 12', () => eq(runSrc(SAMPLES[4].src, [3, 4]).output, [12]));
+    t('demo: stops when INPUT is empty', () => { const r = run(machine('INP\nHLT'), {}); eq(r.reason, 'needInput'); });
+
+    // --- every opcode ---
+    t('LDA loads and clears N', () => { const s = runSrc('LDA 3\nHLT\nHLT\nDAT 77', []); eq(s.acc, 77); eq(s.n, false); });
+    t('STA writes RAM', () => { const s = runSrc('LDA 4\nSTA 5\nHLT\nHLT\nDAT 33\nDAT 0', []); eq(s.ram[5], 33); eq(s.lastWritten, 5); });
+    t('ADD adds; overflow wraps with badge, no N', () => {
+      let s = runSrc('LDA 3\nADD 4\nHLT\nDAT 600\nDAT 500', []); eq(s.acc, 100); eq(s.overflow, true); eq(s.n, false);
+      s = runSrc('LDA 3\nADD 4\nHLT\nDAT 20\nDAT 25', []); eq(s.acc, 45); eq(s.overflow, false);
+    });
+    t('SUB below zero sets N and wraps', () => { const s = runSrc('LDA 3\nSUB 4\nHLT\nDAT 5\nDAT 10', []); eq(s.acc, 995); eq(s.n, true); });
+    t('SUB to zero leaves N off', () => { const s = runSrc('LDA 3\nSUB 4\nHLT\nDAT 5\nDAT 5', []); eq(s.acc, 0); eq(s.n, false); });
+    t('ADD and LDA clear N', () => {
+      eq(runSrc('LDA 4\nSUB 5\nADD 5\nHLT\nDAT 5\nDAT 10', []).n, false);
+      eq(runSrc('LDA 4\nSUB 5\nLDA 4\nHLT\nDAT 5\nDAT 10', []).n, false);
+    });
+    t('INP reads the INPUT tray and clears N', () => { const s = runSrc('INP\nHLT', [123]); eq(s.acc, 123); eq(s.n, false); eq(s.input, []); });
+    t('OUT prints ACC', () => eq(runSrc('INP\nOUT\nOUT\nHLT', [9]).output, [9, 9]));
+    t('INP and OUT go through the MDR (only the MDR uses the data bus)', () => {
+      const ids = mn => EXEC[mn].map(st => st.id);
+      eq(ids('INP'), ['INP_IN', 'INP_SEND', 'MDR', 'LDA_ACC']);
+      eq(ids('OUT'), ['OUT_OUT', 'STA_ACC', 'OUT_BUS', 'OUT_PRINT']);
+      const accActions = new Set(Object.values(EXEC).flat().filter(st => st.comp === 'acc').map(st => st.action));
+      eq([...accActions].sort(), ['acc.fromMdr', 'acc.latchResult', 'acc.toAlu', 'acc.toMdr']);
+      let s = until(machine('INP\nHLT', [42]), x => current(x).id === 'LDA_ACC'); eq(s.mdr, 42); eq(s.acc, 0);
+      s = until(machine('INP\nOUT\nHLT', [7]), x => x.count.instr === 1 && current(x).id === 'OUT_PRINT'); eq(s.bus.data, 7); eq(s.bus.dataDir, 'toIO');
+    });
+    t('CU: signals, one ALU button, one HALT – no Go/Next button', () => {
+      const cuSteps = [...FETCH, ...DECODE, ...Object.values(EXEC).flat()].filter(st => st.comp === 'cu');
+      const fixed = new Set(cuSteps.filter(st => typeof st.action === 'string').map(st => st.action));
+      eq([...fixed].sort(), ['cu.alu', 'cu.halt', 'cu.in', 'cu.out', 'cu.read', 'cu.write']);
+      eq(cuSteps.filter(st => typeof st.action === 'function').map(st => st.id), ['BR_DECIDE', 'BR_DECIDE']);
+    });
+    t('BRA jumps', () => eq(runSrc('BRA 3\nOUT\nHLT\nINP\nOUT\nHLT', [4]).output, [4]));
+    t('BRZ: taken on 0 with N off, not taken otherwise', () => {
+      const p = 'INP\nBRZ 4\nOUT\nHLT\nHLT';
+      eq(runSrc(p, [0]).output, []); eq(runSrc(p, [7]).output, [7]);
+      eq(runSrc('LDA 5\nSUB 6\nBRZ 4\nOUT\nHLT\nDAT 5\nDAT 5', []).output, []);
+      eq(runSrc('LDA 6\nSUB 7\nBRZ 5\nOUT\nHLT\nHLT\nDAT 5\nDAT 6', []).output, [999]);
+    });
+    t('BRP: taken when N off, not taken when N on', () => {
+      const p = 'LDA 6\nSUB 7\nBRP 4\nOUT\nHLT\nHLT\nDAT {A}\nDAT {B}';
+      eq(runSrc(fmt(p, { A: 5, B: 3 }), []).output, []); eq(runSrc(fmt(p, { A: 3, B: 5 }), []).output, [998]);
+    });
+    t('HLT halts with HALT on the control bus', () => { const s = runSrc('HLT', []); ok(s.halted); eq(s.bus.ctrl, 'HALT'); ok(!s.haltMsg); });
+    t('illegal 4xx halts with a message', () => {
+      let s = machine('DAT 405'); s = until(s, x => current(x) && current(x).id === 'ILLEGAL');
+      eq(act(s, 'cu.read', null).reason, 'wrong');
+      s = act(s, 'cu.halt', null).state; ok(s.halted); ok(/405/.test(s.haltMsg)); eq(s.bus.ctrl, 'HALT');
+    });
+    t('illegal 0xx (not 000) and 9xx', () => { ok(run(machine('DAT 7')).state.haltMsg); ok(run(machine('DAT 903')).state.haltMsg); });
+
+    // --- guided-mode validation ---
+    t('worked snapshot: ADD Y just before the ALU computes', () => {
+      let s = machine(SAMPLES[0].src);
+      s = until(s, x => x.count.instr === 1 && x.phase === 'EXECUTE' && current(x).id === 'ALU_COMPUTE');
+      const r = current(s); eq([r.idx, r.total], [9, 10]);
+      eq({ pc: s.pc, ir: s.ir, mar: s.mar, mdr: s.mdr, acc: s.acc, n: s.n, a: s.alu.a, b: s.alu.b, op: s.alu.op,
+           addr: s.bus.addr, data: s.bus.data, ctrl: s.bus.ctrl, head: s.head },
+         { pc: 2, ir: 106, mar: 6, mdr: 25, acc: 20, n: false, a: 20, b: 25, op: '+', addr: 6, data: 25, ctrl: 'ACK', head: 6 });
+      eq(phaseText(s, r), 'EXECUTE · ADD 06 · step 9/10');
+    });
+    t('act() never mutates its input state', () => {
+      let s = machine(SAMPLES[0].src); const before = JSON.stringify(s);
+      act(s, 'pc.toMar', null); act(s, 'pc.set', '5'); act(s, 'cu.read', null); eq(JSON.stringify(s), before);
+    });
+    t('inactive component: no state change', () => {
+      const s = machine(SAMPLES[0].src); const r = act(s, 'alu.compute', { value: '45' }); eq(r.reason, 'notTurn'); ok(r.state === s);
+      ok(/Program Counter/.test(r.msg));
+    });
+    t('wrong action is rejected and counted', () => {
+      const s = machine(SAMPLES[0].src); const r = act(s, 'pc.set', '1');
+      eq(r.reason, 'wrong'); eq(r.state.errors.PC, 1); eq(r.state.stepNo, 0); eq(r.state.attempts, 1);
+    });
+    t('phases advance on their own: FETCH starts with the PC, EXECUTE right after decoding', () => {
+      let s = machine(SAMPLES[0].src);
+      eq([s.phase, current(s).action], ['FETCH', 'pc.toMar']);
+      eq(FETCH.length, 7); eq(DECODE.length, 1);
+      s = until(s, x => current(x).id === 'D_DEC');
+      s = act(s, 'ir.decode', { mn: 'LDA', op: '05' }).state;
+      eq([s.phase, current(s).action], ['EXECUTE', 'ir.toMar']);
+      s = until(s, x => x.count.instr === 1);
+      eq([s.phase, current(s).action], ['FETCH', 'pc.toMar']);
+    });
+    t('Send to MAR sets the MAR; the MAR button drives the address bus', () => {
+      let s = until(machine(SAMPLES[0].src), x => x.count.instr === 1 && current(x).id === 'X_IRMAR');
+      const busBefore = s.bus.addr;
+      s = act(s, 'ir.toMar', null).state; eq(s.mar, 6); eq(s.bus.addr, busBefore);
+      eq(current(s).action, 'mar.toBus');
+      s = act(s, 'mar.toBus', null).state; eq(s.bus.addr, 6); eq(s.bus.addrDir, 'toRam');
+      s = act(machine(SAMPLES[0].src), 'pc.toMar', null).state; eq(s.mar, 0); eq(s.bus.addr, null);
+    });
+    t('PC+1 validated exactly', () => {
+      let s = until(machine(SAMPLES[0].src), x => current(x).id === 'F_INC');
+      eq(act(s, 'pc.set', '2').reason, 'wrong'); eq(act(s, 'pc.set', 'x').reason, 'invalid'); ok(act(s, 'pc.set', '01').ok); ok(act(s, 'pc.set', 1).ok);
+    });
+    t('RAM read impossible unless head = MAR and READ on the bus', () => {
+      let s = machine(SAMPLES[0].src); s.head = 5;
+      s = until(s, x => current(x).id === 'RAMREAD'); // first fetch: MAR = 00, head left at 5 by until? (until turns wheel)
+      s = clone(s); s.head = 3;
+      eq(act(s, 'ram.read', null).reason, 'head');
+      s.head = s.mar; s.bus.ctrl = 'WRITE'; eq(act(s, 'ram.read', null).reason, 'signal');
+      s.bus.ctrl = 'READ'; ok(act(s, 'ram.read', null).ok);
+    });
+    t('wheel: one cell per move, no wrap, clicks counted', () => {
+      let s = machine('HLT'); let r = wheel(s, -1); ok(!r.moved);
+      r = wheel(s, 1); eq(r.state.head, 1); eq(r.state.count.clicks, 1);
+      s.head = 99; ok(!wheel(s, 1).moved); eq(wheel(s, -5).state.head, 98);
+      eq(wheel(machine('HLT'), 1, false).state.count.clicks, 0);
+    });
+    t('decode validated: name and operand', () => {
+      const s = until(machine(SAMPLES[0].src), x => current(x).id === 'D_DEC');
+      eq(act(s, 'ir.decode', { mn: 'ADD', op: '05' }).reason, 'wrong');
+      eq(act(s, 'ir.decode', { mn: 'LDA', op: '06' }).reason, 'wrong');
+      ok(act(s, 'ir.decode', { mn: 'LDA', op: '5' }).ok);
+      const o = until(machine('OUT'), x => current(x).id === 'D_DEC');
+      eq(act(o, 'ir.decode', { mn: 'OUT', op: '02' }).reason, 'wrong'); ok(act(o, 'ir.decode', { mn: 'OUT', op: '' }).ok);
+    });
+    t('ALU validates value and N flag', () => {
+      const s = until(machine('LDA 3\nSUB 4\nHLT\nDAT 5\nDAT 10'), x => x.count.instr === 1 && current(x).id === 'ALU_COMPUTE');
+      eq(act(s, 'alu.compute', { value: '995', n: false }).reason, 'wrong');
+      eq(act(s, 'alu.compute', { value: '5', n: true }).reason, 'wrong');
+      ok(act(s, 'alu.compute', { value: '995', n: true }).ok);
+    });
+    t('branch decision validated', () => {
+      const s = until(machine('LDA 3\nBRZ 0\nHLT\nDAT 4'), x => x.count.instr === 1 && current(x).id === 'BR_DECIDE');
+      eq(act(s, 'cu.taken', null).reason, 'wrong'); const r = act(s, 'cu.nottaken', null); ok(r.ok);
+      eq(r.state.phase, 'FETCH'); eq(r.state.count.instr, 2);
+    });
+    t('INP with empty tray accepts a typed number', () => {
+      const s = until(machine('INP\nHLT'), x => current(x).id === 'INP_SEND', {});
+      eq(act(s, 'io.send', { value: '1000' }).reason, 'invalid'); ok(act(s, 'io.send', { value: '42' }).ok);
+    });
+    t('guided run of warm-up using only expected student actions', () => {
+      let s = machine(SAMPLES[0].src), steps = 0;
+      while (!s.halted && steps < 500) {
+        const req = current(s);
+        while (req.comp === 'ram' && s.head !== s.mar) s = wheel(s, s.mar - s.head).state;
+        const r = act(s, req.action, expectedPayload(s, req)); ok(r.ok, req.id); s = r.state; steps++;
+      }
+      eq(s.output, [45]); ok(s.count.clicks > 0);
+    });
+    t('state snapshot round-trips (undo/redo)', () => {
+      let s = until(machine(SAMPLES[0].src), x => current(x).id === 'MDR'); const snap = clone(s);
+      s = act(s, 'mdr.latch', null).state; ok(JSON.stringify(s) !== JSON.stringify(snap));
+      eq(clone(snap), snap);
+    });
+    return results;
+  }
+
+  return { STRINGS: S, fmt, pad2, pad3, clone, decode, decodedText, num, newMachine, load, reset, current, act, wheel,
+           autoStep, run, expectedPayload, addInput, removeInput, poke, hint, answer, phaseText, assemble, SAMPLES, MNEMONICS,
+           DECODE_NAMES, NEED_INPUT, compOf, runTests, stepList, EXEC, FETCH, DECODE };
+})();
+if (typeof globalThis !== 'undefined') globalThis.LMC = LMC;
+</script>
+<script id="lmc-ui">
+/* ==========================================================================
+   UI: renders from the machine state, sends every change through LMC.
+   ========================================================================== */
+(() => {
+  'use strict';
+  const S = STRINGS, F = LMC.fmt, p2 = LMC.pad2, p3 = LMC.pad3;
+  const $ = id => document.getElementById(id);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+  const NS = 'http://www.w3.org/2000/svg';
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const stage = $('stage');
+
+  /* ---------------- layout (stage pixels, 1920×1080) ---------------- */
+  const L = {
+    // left column – the CU, PC and IR (one student in the 4-player preset)
+    cu: [40, 136, 520, 188], pc: [40, 336, 520, 132], ir: [40, 480, 520, 340],
+    // right column, beside the buses – ACC, MAR, MDR, ALU (MI + ACC are one student in the 4/6-player presets).
+    // MAR must cover the address lane and MDR the data lane; both lanes must hit the RAM head window (y 340–592).
+    acc: [580, 136, 420, 152], mar: [580, 300, 420, 100], mdr: [580, 412, 420, 148], alu: [580, 572, 420, 248],
+    msg: [1036, 112, 420, 208], ram: [1470, 112, 436, 708],
+    input: [20, 850, 580, 220], output: [620, 850, 580, 220], storage: [1220, 850, 690, 220],
+  };
+  // BX0/BX1: bus lane ends (chip edge, RAM wheel). PIN: x where wires leave the chip.
+  // CH: vertical channel between the two CPU columns. GAP: horizontal gap between MDR and ALU.
+  const LANE = { addr: 365, data: 455, ctrl: 545 }, BX0 = 1020, BX1 = 1470, PIN = 1010, CH = 570, GAP = 566;
+  const DATA_BR = 1035, CTRL_BR = 1060, DATA_H = 836, CTRL_H = 844;
+  const CELL_Y = [0, 114, 228, 480, 594], CELL_H = [114, 114, 252, 114, 114];
+
+  const ROLES = ['CU', 'PC', 'IR', 'MI', 'RAM', 'ALU', 'ACC', 'IO'];
+  const ROLE_OF = { cu: 'CU', pc: 'PC', ir: 'IR', mar: 'MI', mdr: 'MI', acc: 'ACC', alu: 'ALU', ram: 'RAM', in: 'IO', out: 'IO', storage: 'IO' };
+  const PRESETS = {
+    8: ROLES.map(r => [r]),
+    6: [['CU'], ['PC', 'IR'], ['MI', 'ACC'], ['RAM'], ['ALU'], ['IO']],
+    4: [['CU', 'PC', 'IR'], ['MI', 'ACC'], ['RAM', 'IO'], ['ALU']],
+  };
+
+  /* ---------------- settings & state ---------------- */
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DEFAULTS = { mode: 'guided', played: ROLES.slice(), hints: true, sound: true, speed: reduced ? 0 : 1,
+                     fastWheel: false, crowd: false, editMem: false, spaceKey: true, preset: 8, names: {}, demoDelay: 900 };
+  let settings = (() => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem('lmc-sim-settings') || '{}') }; } catch (e) { return { ...DEFAULTS }; } })();
+  const saveSettings = () => { try { localStorage.setItem('lmc-sim-settings', JSON.stringify(settings)); } catch (e) { /* storage unavailable */ } };
+
+  let M = LMC.newMachine();
+  let history = [], future = [];
+  let busy = false, demoRunning = false, autoTimer = null;
+  let selMn = null, aluN = false, lastAnswer = '', flashUntil = 0, menuOpenedByHold = false;
+  const prevShown = {};
+  let suppressCue = true;
+  const eopts = () => ({ countClicks: !settings.fastWheel });
+  const speed = () => settings.speed;
+
+  /* ---------------- programs on "disk" ---------------- */
+  const STORE_KEY = 'lmc-sim-programs';
+  const userPrograms = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { return []; } };
+  const saveUserPrograms = list => { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); return true; } catch (e) { return false; } };
+  const allPrograms = () => [...LMC.SAMPLES, ...userPrograms()];
+
+  /* ---------------- scaling ---------------- */
+  let k = 1;
+  function fit() {
+    const W = innerWidth, H = innerHeight;
+    k = Math.min(W / 1920, H / 1080) || 1;
+    stage.style.transform = `translate(${(W - 1920 * k) / 2}px, ${(H - 1080 * k) / 2}px) scale(${k})`;
+  }
+  function anchor(id) {
+    const el = typeof id === 'string' ? $(id) : id;
+    const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    return [(r.left + r.width / 2 - s.left) / k, (r.top + r.height / 2 - s.top) / k];
+  }
+
+  /* ---------------- paths (for tokens and wires) ---------------- */
+  const A = anchor;
+  const viaCh = (a, b) => [a, [CH, a[1]], [CH, b[1]], b];
+  const cuOut = () => { const c = A('cu-dec'); return [c, [CH, c[1]], [CH, GAP], [PIN, GAP], [PIN, LANE.ctrl]]; };
+  const PATHS = {
+    'pc-mar': () => viaCh(A('v-pc'), A('v-mar')),
+    'mar-ram': () => { const m = A('v-mar'); return [m, [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]]; },
+    'cu-ram': () => [...cuOut(), [BX1, LANE.ctrl]],
+    'ram-cu': () => PATHS['cu-ram']().reverse(),
+    // data bus: a value put on the bus stops at the bus (its value box); the next step takes it off
+    'ram-bus': () => [[BX1, LANE.data], A('bus-data')],
+    'bus-ram': () => [A('bus-data'), [BX1, LANE.data]],
+    'bus-mdr': () => [A('bus-data'), [PIN, LANE.data], A('v-mdr')],
+    'mdr-bus': () => PATHS['bus-mdr']().reverse(),
+    'iobus-mdr': () => [[DATA_BR, LANE.data], [PIN, LANE.data], A('v-mdr')],
+    'mdr-iobus': () => PATHS['iobus-mdr']().reverse(),
+    'in-iobus': () => { const t = A('in-tray'); return [t, [t[0], DATA_H], [DATA_BR, DATA_H], [DATA_BR, LANE.data]]; },
+    'iobus-out': () => { const t = A('out-tray'); return [[DATA_BR, LANE.data], [DATA_BR, DATA_H], [t[0], DATA_H], t]; },
+    'mdr-ir': () => viaCh(A('v-mdr'), A('v-ir')),
+    'ir-mar': () => viaCh(A('v-ir'), A('v-mar')),
+    'ir-pcin': () => viaCh(A('v-ir'), A('in-pc')),
+    'cu-alu': () => viaCh(A('cu-dec'), A('v-aluOp')),
+    'mdr-acc': () => viaCh(A('v-mdr'), A('v-acc')),
+    'acc-mdr': () => viaCh(A('v-acc'), A('v-mdr')),
+    'acc-alua': () => viaCh(A('v-acc'), A('v-aluA')),
+    'mdr-alub': () => { const m = A('v-mdr'), b = A('v-aluB'); return [m, [m[0], GAP], [b[0], GAP], b]; },
+    'alu-acc': () => { const r = A('v-aluR'), a = A('v-acc'); return [r, [r[0], GAP], [CH, GAP], [CH, a[1]], a]; },
+    'cu-in': () => { const t = A('in-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
+    'cu-out': () => { const t = A('out-tray'); return [...cuOut(), [CTRL_BR, LANE.ctrl], [CTRL_BR, CTRL_H], [t[0], CTRL_H], t]; },
+  };
+
+  /* ---------------- static build ---------------- */
+  function getS(path) { return path.split('.').reduce((o, key) => (o ? o[key] : undefined), S); }
+  function build() {
+    document.title = S.appTitle;
+    $$('[data-l]').forEach(el => { const [x, y, w, h] = L[el.dataset.l]; Object.assign(el.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' }); });
+    $$('[data-s]').forEach(el => { el.textContent = getS(el.dataset.s); });
+    $$('[data-act]').forEach(b => { const t = S.btn[b.dataset.act]; if (t) b.textContent = t; });
+    $('b-add').textContent = S.btn.add; $('b-hint').textContent = S.btn.hint; $('b-answer').textContent = S.btn.answer;
+    $('dec-grid').innerHTML = LMC.DECODE_NAMES.map(m => `<button data-mn="${m}">${m}</button>`).join('');
+    $('alu-ops').innerHTML = ['MUL', 'DIV', 'AND', 'OR', 'XOR', 'NOT'].map(o => `<span title="${S.notInLmc}">${o}</span>`).join('');
+    $('head-tag').textContent = S.headLabel;
+    $('n-box').title = S.nTitle;
+    buildBuses();
+    buildStorage();
+  }
+
+  function buildBuses() {
+    const b = $('buses');
+    const mid = (BX0 + BX1) / 2 + 20;
+    let h = '';
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.addr - 36}px;color:var(--addr)">${S.buses.addr}</div>`;
+    h += `<div class="lane-val" id="bus-addr" style="left:${mid}px;top:${LANE.addr}px;color:var(--addr);border-color:var(--addr)">––</div>`;
+    h += `<div class="lane-dir" id="dir-addr" style="left:${BX1 - 18}px;top:${LANE.addr}px;color:var(--addr)">▶</div>`;
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.data - 36}px;color:var(--data)">${S.buses.data}</div>`;
+    h += `<div class="lane-val" id="bus-data" style="left:${mid}px;top:${LANE.data}px;color:var(--data);border-color:var(--data)">––</div>`;
+    h += `<div class="lane-dir" id="dir-data" style="left:${BX1 - 18}px;top:${LANE.data}px;color:var(--data)"></div>`;
+    h += `<div class="lane-tag" style="left:${BX0 + 76}px;top:${LANE.ctrl - 38}px;color:var(--ctrl)">${S.buses.ctrl}</div>`;
+    S.signals.forEach((w, i) => { h += `<div class="ctrl-word" data-sig="${w}" style="left:${BX0 + 100 + i * 62}px;top:${LANE.ctrl}px">${w}</div>`; });
+    h += `<div class="lane-dir" id="dir-ctrl" style="left:${BX1 - 18}px;top:${LANE.ctrl}px;color:var(--ctrl)"></div>`;
+    h += `<div class="lane-dir" id="dir-iodata" style="left:${DATA_BR - 2}px;top:790px;color:var(--data)"></div>`;
+    h += `<div class="lane-dir" id="dir-ioctrl" style="left:${CTRL_BR + 26}px;top:790px;color:var(--ctrl)"></div>`;
+    b.innerHTML = h;
+  }
+
+  function drawWires() {
+    const svg = $('wires');
+    const line = (pts, cls) => `<polyline class="w ${cls}" points="${pts.map(p => p.map(Math.round).join(',')).join(' ')}"/>`;
+    let h = '';
+    ['mdr-ir', 'ir-mar', 'ir-pcin', 'mdr-acc', 'acc-alua', 'mdr-alub', 'alu-acc', 'pc-mar'].forEach(p => { h += line(PATHS[p](), 'int'); });
+    const m = A('v-mar'), c = A('cu-dec');
+    h += line([[L.mar[0] + L.mar[2], m[1]], [PIN, m[1]], [PIN, LANE.addr], [BX1, LANE.addr]], 'addr');
+    h += line([[L.mdr[0] + L.mdr[2], LANE.data], [BX1, LANE.data]], 'data');
+    h += line([[L.cu[0] + L.cu[2], c[1]], [CH, c[1]], [CH, GAP], [PIN, GAP], [PIN, LANE.ctrl], [BX1, LANE.ctrl]], 'ctrl');
+    const ti = A('in-tray');
+    h += line([[DATA_BR, LANE.data], [DATA_BR, 850]], 'data br');
+    h += line([[DATA_BR, DATA_H], [ti[0] - 20, DATA_H], [ti[0] - 20, 850]], 'data br');
+    h += line([[CTRL_BR, LANE.ctrl], [CTRL_BR, 850]], 'ctrl br');
+    h += line([[CTRL_BR, CTRL_H], [ti[0] + 20, CTRL_H], [ti[0] + 20, 850]], 'ctrl br');
+    svg.innerHTML = h;
+  }
+
+  function buildStorage() {
+    const cur = M.program && M.program.name;
+    $('disk-list').innerHTML = allPrograms().map((p, i) =>
+      `<div class="disk-row${p.name === cur && M.loaded ? ' cur' : ''}"><span class="nm" title="${esc(p.name)}">${esc(p.name)}</span>` +
+      `<button data-prog="${i}">${S.btn.load}</button>${p.builtin ? '' : `<button data-del="${i}" aria-label="Delete">✕</button>`}</div>`).join('');
+  }
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* ---------------- rendering ---------------- */
+  function badgeText(comp) {
+    const role = ROLE_OF[comp];
+    const group = PRESETS[settings.preset].find(g => g.includes(role)) || [role];
+    const label = group.map(r => S.roleShort[r]).join(' + ');
+    const name = settings.names[group.join('+')];
+    return name ? `${label} – ${name}` : label;
+  }
+  function roleWho(role) {
+    const group = PRESETS[settings.preset].find(g => g.includes(role)) || [role];
+    const name = settings.names[group.join('+')];
+    return S.roles[role] + (name ? ` (${name})` : '');
+  }
+
+  function setVal(key, text, el = $('v-' + key)) {
+    const prev = prevShown[key];
+    if (prev !== undefined && prev !== text && !suppressCue) {
+      el.classList.remove('chg'); void el.offsetWidth; el.classList.add('chg');
+      const w = $('w-' + key);
+      if (w) { w.textContent = F(S.was, { v: prev }); w.classList.add('show'); clearTimeout(w._t); w._t = setTimeout(() => w.classList.remove('show'), 2000); }
+    }
+    prevShown[key] = text;
+    if (el.dataset.txt !== text) { el.dataset.txt = text; if (key !== 'ir') el.textContent = text; }
+  }
+
+  function render() {
+    const req = LMC.current(M, eopts());
+    const active = !M.loaded ? 'storage' : req ? req.comp : null;
+    $$('.comp').forEach(el => {
+      const on = el.dataset.comp === active;
+      el.classList.toggle('active', on);
+      el.classList.toggle('dim', !!active && !on);
+    });
+    $$('[data-badge]').forEach(b => { b.textContent = badgeText(b.dataset.badge); });
+    document.body.classList.toggle('busy', busy);
+
+    // top bar
+    $('prog-name').textContent = M.loaded ? M.program.name : S.noProgram;
+    $$('.pill').forEach(p => p.classList.toggle('on', M.loaded && p.dataset.ph === M.phase));
+    const st = $('step-text');
+    st.classList.toggle('done', M.halted && !M.haltMsg); st.classList.toggle('bad', !!M.haltMsg);
+    st.textContent = !M.loaded ? S.prompts.empty : M.halted ? (M.haltMsg ? S.prompts.illegalStop : S.prompts.finished) : req.prompt;
+    let crowd = '';
+    if (settings.crowd && M.loaded) {
+      const q = req && req.step.pq ? F(S.msgs.crowdQ, { label: req.step.pq(M) }) : '';
+      crowd = [q, lastAnswer].filter(Boolean).join('   ·   ');
+    }
+    $('crowd').textContent = crowd;
+    $('ct-instr').textContent = M.count.instr; $('ct-micro').textContent = M.count.micro; $('ct-clicks').textContent = M.count.clicks;
+    $('ram-clicks').textContent = M.count.clicks;
+
+    // CU
+    $('cu-phase').textContent = M.loaded ? LMC.phaseText(M, req, false) : '';
+    $('cu-phase').title = M.loaded ? LMC.phaseText(M, req) : '';
+    $('cu-next').textContent = req ? F(S.next, { who: S.roleShort[req.role] }) : '';
+    $('cu-dec').textContent = M.decoded ? LMC.decodedText(M.decoded) : '—';
+
+    // registers
+    setVal('pc', p2(M.pc)); setVal('mar', p2(M.mar)); setVal('mdr', p3(M.mdr)); setVal('acc', p3(M.acc));
+    const irs = p3(M.ir);
+    setVal('ir', irs); $('ir-op').textContent = irs[0]; $('ir-opd').textContent = irs.slice(1);
+    $('ir-mn').textContent = M.decoded ? LMC.decodedText(M.decoded) : '?';
+    $('n-lamp').classList.toggle('on', M.n);
+    $('ovf').textContent = M.overflow ? S.overflow : '';
+    setVal('aluA', M.alu.a == null ? '---' : p3(M.alu.a));
+    setVal('aluB', M.alu.b == null ? '---' : p3(M.alu.b));
+    $('v-aluOp').textContent = M.alu.op || '?';
+    setVal('aluR', M.alu.result == null ? '?' : p3(M.alu.result) + (M.alu.n ? ' N' : ''));
+    if (M.alu.n && M.alu.result != null) $('v-aluR').innerHTML = `${p3(M.alu.result)}<small>N</small>`;
+    const nb = $('alu-n'); nb.textContent = aluN ? S.btn.nOn : S.btn.nOff; nb.classList.toggle('on', aluN);
+    $$('#dec-grid button').forEach(b => b.classList.toggle('sel', b.dataset.mn === selMn));
+
+    // buses
+    const bus = M.bus;
+    $('bus-addr').textContent = p2(bus.addr); $('bus-addr').classList.toggle('glow', bus.addr != null);
+    $('dir-addr').textContent = bus.addr != null ? '▶' : '';
+    $('bus-data').textContent = p3(bus.data); $('bus-data').classList.toggle('glow', bus.data != null);
+    const dd = bus.dataDir;
+    const dAr = $('dir-data'); dAr.textContent = dd === 'toRam' ? '▶' : dd === 'toCpu' ? '◀' : dd ? '◀' : '';
+    dAr.style.left = (dd === 'toRam' ? BX1 - 18 : BX0 + 62) + 'px';
+    $('dir-iodata').textContent = dd === 'toIO' ? '▼' : dd === 'fromIO' ? '▲' : '';
+    $$('.ctrl-word').forEach(w => w.classList.toggle('on', w.dataset.sig === bus.ctrl));
+    const cd = bus.ctrlDir, cAr = $('dir-ctrl');
+    cAr.textContent = cd === 'toRam' ? '▶' : cd === 'toCpu' ? '◀' : '';
+    cAr.style.left = (cd === 'toRam' ? BX1 - 18 : BX0 + 62) + 'px';
+    $('dir-ioctrl').textContent = cd === 'toIO' ? '▼' : '';
+
+    renderWheel();
+    // RAM buttons usable only when head = MAR and the matching signal is on the control bus
+    const match = M.head === M.mar;
+    $$('[data-act="ram.read"]')[0].classList.toggle('off', !(match && bus.ctrl === 'READ'));
+    $$('[data-act="ram.write"]')[0].classList.toggle('off', !(match && bus.ctrl === 'WRITE'));
+
+    // trays
+    $('in-tray').innerHTML = M.input.length ? M.input.map((v, i) => `<span class="chip${i === 0 ? ' first' : ''}" data-chip="${i}">${p3(v)}</span>`).join('') : `<span class="empty">empty</span>`;
+    const out = $('out-tray');
+    const outHtml = M.output.length ? M.output.map((v, i) => `<span class="chip${i === M.output.length - 1 && justPrinted ? ' new' : ''}">${p3(v)}</span>`).join('') : `<span class="empty">empty</span>`;
+    if (out.dataset.h !== outHtml) { out.innerHTML = outHtml; out.dataset.h = outHtml; }
+    justPrinted = false;
+
+    // message panel
+    const modeName = { guided: 'Guided mode', demo: 'Demo mode', assist: 'Step-assist mode' }[settings.mode];
+    let ml = modeName;
+    if (settings.mode === 'demo') ml += demoRunning ? ' – running' : ' – paused';
+    if (settings.mode === 'assist') { const auto = ROLES.filter(r => !settings.played.includes(r)); ml += auto.length ? ' – app plays ' + auto.map(r => S.roleShort[r]).join(', ') : ''; }
+    $('mode-line').textContent = ml;
+    $('demo-bar').classList.toggle('hidden', settings.mode !== 'demo');
+    $('demo-play').textContent = demoRunning ? '⏸' : '▶';
+    $('demo-speed').value = 2650 - settings.demoDelay;
+    const showHint = settings.hints && req && M.attempts >= 2;
+    $('b-hint').classList.toggle('hidden', !showHint);
+    $('b-answer').classList.toggle('hidden', !(req && M.attempts >= 3));
+
+    suppressCue = false;
+  }
+  let justPrinted = false;
+
+  function renderWheel(dir = 0) {
+    const inner = $('wheel-inner');
+    let h = '';
+    for (let i = 0; i < 5; i++) {
+      const a = M.head - 2 + i;
+      const cls = ['cell', i === 2 ? 'headcell' : '', a < 0 || a > 99 ? 'void' : '', a === M.lastWritten && Date.now() < flashUntil ? 'written' : ''].join(' ');
+      const inner2 = a < 0 || a > 99 ? '' :
+        `${M.started && a === M.fetchAddr ? '<span class="mark">▶</span>' : ''}<span class="a">${p2(a)}</span><span class="v">${p3(M.ram[a])}</span>`;
+      h += `<div class="${cls}" style="top:${CELL_Y[i]}px;height:${CELL_H[i]}px">${inner2}</div>`;
+    }
+    if (inner.dataset.h !== h) { inner.innerHTML = h; inner.dataset.h = h; }
+    if (dir && speed() && !settings.fastWheel) inner.animate([{ transform: `translateY(${dir * 46}px)` }, { transform: 'none' }], { duration: 120 / speed(), easing: 'ease-out' });
+    const match = M.head === M.mar;
+    $('head').classList.toggle('match', match);
+    $('head-tag').textContent = match ? `${S.headLabel} = MAR ${p2(M.mar)}` : `${S.headLabel} ${p2(M.head)} ≠ MAR ${p2(M.mar)}`;
+  }
+
+  /* ---------------- feedback ---------------- */
+  function showMsg(text, kind = 'info') { const m = $('msg'); m.textContent = text; m.className = kind; }
+  function compEls(comp) { return [$$(`.comp[data-comp="${comp}"]`)[0]].filter(Boolean); }
+  function pulseClass(comp, cls, ms) { compEls(comp).forEach(el => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); }); }
+  const shake = comp => pulseClass(comp, 'shake', 450);
+  function notTurn(comp, req) {
+    shake(comp); sound('bad');
+    showMsg(req ? F(S.msgs.notTurn, { role: roleWho(req.role) }) : (M.loaded ? S.msgs.halted : S.msgs.noProgram), 'warn');
+  }
+
+  let actx = null;
+  function sound(kind) {
+    if (!settings.sound) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+      const cfg = { click: ['square', 1700, 0.04, 0.03], ok: ['sine', 880, 0.1, 0.16], bad: ['sawtooth', 160, 0.08, 0.22], load: ['triangle', 520, 0.06, 0.08] }[kind];
+      o.type = cfg[0]; o.frequency.value = cfg[1];
+      g.gain.setValueAtTime(cfg[2], t); g.gain.exponentialRampToValueAtTime(0.0001, t + cfg[3]);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + cfg[3] + 0.02);
+    } catch (e) { /* audio unavailable */ }
+  }
+
+  /* ---------------- animation ---------------- */
+  function token(ev) {
+    if (!speed() || !PATHS[ev.path]) return Promise.resolve();
+    const pts = PATHS[ev.path]();
+    // A hidden or zero-size window has no layout to animate along – just skip the animation.
+    if (!pts.flat().every(Number.isFinite)) return Promise.resolve();
+    const fx = $('fx');
+    let svg = fx.querySelector('svg');
+    if (!svg) { svg = document.createElementNS(NS, 'svg'); svg.setAttribute('width', 1920); svg.setAttribute('height', 1080); fx.appendChild(svg); }
+    const pl = document.createElementNS(NS, 'polyline');
+    pl.setAttribute('points', pts.map(p => p.join(',')).join(' ')); pl.setAttribute('class', 'hl'); svg.appendChild(pl);
+    const el = document.createElement('div'); el.className = 'token ' + (ev.kind || ''); el.textContent = ev.value; fx.appendChild(el);
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = cum[cum.length - 1] || 1;
+    const frames = pts.map((p, i) => ({ transform: `translate(${p[0]}px, ${p[1]}px) translate(-50%, -50%)`, offset: cum[i] / total }));
+    const dur = Math.min(1100, Math.max(500, total * 0.9)) / speed();
+    const anim = el.animate(frames, { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
+    return anim.finished.catch(() => {}).then(() => { el.remove(); pl.remove(); });
+  }
+  async function playEvents(events) {
+    for (const ev of events) {
+      if (ev.type === 'token') await token(ev);
+      if (ev.type === 'print') justPrinted = true;
+      if (ev.type === 'fill') $(ev.input).value = ev.value;
+      if (ev.type === 'flash') flashUntil = Date.now() + 1600;
+    }
+  }
+  async function animateLoad(cells, size) {
+    if (!speed()) return;
+    const from = A('c-storage'), to = A('wheel');
+    if (![...from, ...to].every(Number.isFinite)) return;
+    const n = Math.min(size, 30), fx = $('fx'), jobs = [];
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div'); el.className = 'token data'; el.textContent = p3(cells[i]); el.style.opacity = 0; fx.appendChild(el);
+      const a = el.animate([
+        { transform: `translate(${from[0]}px, ${from[1]}px) translate(-50%,-50%) scale(.6)`, opacity: 1 },
+        { transform: `translate(${to[0]}px, ${to[1] - 200 + (i % 10) * 40}px) translate(-50%,-50%)`, opacity: 1 },
+      ], { duration: 650 / speed(), delay: (i * 70) / speed(), easing: 'ease-in-out', fill: 'forwards' });
+      jobs.push(a.finished.catch(() => {}).then(() => el.remove()));
+      if (i % 4 === 0) setTimeout(() => sound('load'), (i * 70) / speed());
+    }
+    await Promise.all(jobs);
+  }
+
+  /* ---------------- actions ---------------- */
+  function pushHistory() { history.push(M); future = []; }
+
+  async function doAction(action, payload) {
+    if (busy) return false;
+    const res = LMC.act(M, action, payload, eopts());
+    const comp = LMC.compOf(action);
+    if (!res.ok) {
+      if (res.reason === 'notTurn') notTurn(comp, res.req);
+      else if (res.reason === 'wrong') { M = res.state; shake(comp); pulseClass(comp, 'badflash', 700); sound('bad'); showMsg(res.msg, 'err'); render(); }
+      else { showMsg(res.msg, 'warn'); if (res.reason !== 'halted') shake(comp); }
+      return false;
+    }
+    pushHistory();
+    const req = res.req;
+    busy = true; render();
+    pulseClass(comp, 'good', 600); sound('ok'); showMsg(S.msgs.correct, 'ok');
+    await playEvents(res.events);
+    M = res.state; busy = false;
+    if (req.step.pq) lastAnswer = F(S.msgs.crowdA, { label: req.step.pq(M), value: req.step.pa(M) });
+    if (action === 'pc.set') $('in-pc').value = '';
+    if (action === 'ir.decode') { $('in-dec').value = ''; selMn = null; }
+    if (action === 'alu.compute') { $('in-alu').value = ''; aluN = false; }
+    if (action === 'io.send') $('in-io').value = '';
+    render();
+    if (res.events.some(e => e.type === 'flash')) setTimeout(renderWheel, 1700);
+    if (M.halted) { stopAuto(); setTimeout(showSummary, 500); }
+    scheduleAuto();
+    return true;
+  }
+
+  function onAct(action, btn) {
+    if (busy) return;
+    const comp = btn ? btn.closest('.comp').dataset.comp : LMC.compOf(action);
+    const req = LMC.current(M, eopts());
+    if (action === 'io.add') return addInput();
+    if (!M.loaded) { showMsg(S.msgs.noProgram, 'warn'); shake('storage'); return; }
+    if (M.halted) { showMsg(M.haltMsg || S.msgs.halted, 'warn'); return; }
+    if (settings.mode === 'demo' && demoRunning) { showMsg('Demo is running – pause it first (⏸)', 'warn'); return; }
+    if (action === 'alu.n') { if (!req || req.comp !== 'alu') return notTurn('alu', req); aluN = !aluN; render(); return; }
+    if ((action === 'ram.read' || action === 'ram.write') && req && req.comp !== 'ram') return notTurn('ram', req);
+    let payload = null;
+    if (action === 'pc.set') payload = $('in-pc').value;
+    else if (action === 'ir.decode') payload = { mn: selMn, op: $('in-dec').value };
+    else if (action === 'alu.compute') payload = { value: $('in-alu').value, n: aluN };
+    else if (action === 'io.send') payload = { value: $('in-io').value };
+    doAction(action, payload);
+  }
+
+  function onPickMn(mn) {
+    const req = LMC.current(M, eopts());
+    if (busy) return;
+    if (!req || req.comp !== 'ir') return notTurn('ir', req);
+    selMn = selMn === mn ? null : mn; render();
+  }
+
+  const ioAllowed = () => settings.mode !== 'guided' || !M.started || M.halted || (LMC.current(M, eopts()) || {}).comp === 'in';
+  function addInput() {
+    if (busy) return;
+    if (!ioAllowed()) return notTurn('in', LMC.current(M, eopts()));
+    const v = LMC.num($('in-io').value);
+    if (isNaN(v) || v > 999) { showMsg(S.msgs.invalidNumber, 'warn'); return; }
+    pushHistory(); M = LMC.addInput(M, v); $('in-io').value = ''; render(); scheduleAuto();
+  }
+  function removeInput(i) {
+    if (busy || !ioAllowed()) return notTurn('in', LMC.current(M, eopts()));
+    pushHistory(); M = LMC.removeInput(M, i); render();
+  }
+
+  /* ---------------- wheel ---------------- */
+  function wheelAllowed() { const r = LMC.current(M, eopts()); return r && r.comp === 'ram' && !(settings.mode === 'demo' && demoRunning); }
+  async function moveWheel(dir, teacher = false, silent = false) {
+    if (busy) return false;
+    if (!teacher && !wheelAllowed()) {
+      if (!silent) { notTurn('ram', LMC.current(M, eopts())); if (M.loaded && !M.halted) showMsg(S.msgs.wheelLocked, 'warn'); }
+      return false;
+    }
+    const r = LMC.wheel(M, dir, !settings.fastWheel);
+    if (!r.moved) { const w = $('wheel'); w.classList.remove('bump'); void w.offsetWidth; w.classList.add('bump'); return false; }
+    M = r.state; sound('click');
+    render(); renderWheel(dir);
+    const dur = settings.fastWheel || !speed() ? 0 : 120 / speed();
+    if (dur) { busy = true; await sleep(dur); busy = false; }
+    return true;
+  }
+
+  function setupWheel() {
+    // ▲/▼: one cell per click; holding the button repeats after a short delay.
+    // `held` is checked before repeating, because a quick click can be released
+    // while the first (animated) move is still running.
+    $$('.wbtn').forEach(b => {
+      let held = false, delayT = null, iv = null;
+      const stop = () => { held = false; clearTimeout(delayT); clearInterval(iv); delayT = iv = null; };
+      b.addEventListener('pointerdown', async e => {
+        e.preventDefault(); stop();
+        held = true;
+        try { b.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
+        const d = +b.dataset.wheel;
+        const ok = await moveWheel(d);
+        if (!ok || !held) return;
+        delayT = setTimeout(() => {
+          if (!held) return;
+          iv = setInterval(() => { if (held) moveWheel(d, false, true); else stop(); }, 170);
+        }, 400);
+      });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, stop));
+      addEventListener('pointerup', stop);
+      addEventListener('blur', stop);
+      b.addEventListener('click', e => { if (e.detail === 0) moveWheel(+b.dataset.wheel); });
+    });
+    const w = $('wheel');
+    w.addEventListener('wheel', e => { e.preventDefault(); if (Math.abs(e.deltaY) < 2) return; moveWheel(Math.sign(e.deltaY)); }, { passive: false });
+    let dragY = null, acc = 0;
+    w.addEventListener('pointerdown', e => { dragY = e.clientY; acc = 0; w.setPointerCapture(e.pointerId); });
+    w.addEventListener('pointermove', e => {
+      if (dragY == null) return;
+      acc += (e.clientY - dragY) / k; dragY = e.clientY;
+      if (acc <= -50) { acc += 50; moveWheel(1); } else if (acc >= 50) { acc -= 50; moveWheel(-1); }
+    });
+    const end = () => { dragY = null; };
+    w.addEventListener('pointerup', end); w.addEventListener('pointercancel', end);
+  }
+
+  /* ---------------- auto play: demo, step-assist, Space ---------------- */
+  function stopAuto() { clearTimeout(autoTimer); autoTimer = null; }
+  function anyDialog() { return $$('.overlay').some(o => !o.classList.contains('hidden')); }
+  function scheduleAuto(delay) {
+    stopAuto();
+    if (M.halted || !M.loaded || anyDialog()) return;
+    const req = LMC.current(M, eopts());
+    if (!req) return;
+    const auto = (settings.mode === 'demo' && demoRunning) || (settings.mode === 'assist' && !settings.played.includes(req.role));
+    if (!auto) return;
+    const d = delay != null ? delay : settings.mode === 'demo' ? settings.demoDelay : 450;
+    autoTimer = setTimeout(async () => {
+      autoTimer = null;
+      const r = await performExpected();
+      if (r === 'wheel') scheduleAuto(30);
+      else if (r === 'needInput') { demoRunning = false; render(); }
+      else if (r === 'busy') scheduleAuto(100);
+    }, d);
+  }
+
+  async function performExpected() {
+    if (busy) return 'busy';
+    const req = LMC.current(M, eopts());
+    if (!req) return 'none';
+    if (req.comp === 'ram' && M.head !== M.mar) { await moveWheel(Math.sign(M.mar - M.head), true); return 'wheel'; }
+    const p = LMC.expectedPayload(M, req);
+    if (p === LMC.NEED_INPUT) { showMsg(S.msgs.needInput, 'warn'); shake('in'); return 'needInput'; }
+    if (req.action === 'pc.set') $('in-pc').value = p2(p);
+    if (req.action === 'ir.decode') { selMn = p.mn; $('in-dec').value = p.op; }
+    if (req.action === 'alu.compute') { $('in-alu').value = p.value; aluN = p.n; }
+    if (typeof p === 'object' && p || req.action === 'pc.set') { render(); if (speed()) await sleep(350 / speed()); }
+    await doAction(req.action, p);
+    return 'done';
+  }
+  async function spaceStep() {
+    stopAuto();
+    if (!M.loaded || M.halted) return;
+    let r; let guard = 0;
+    do { r = await performExpected(); } while (r === 'wheel' && guard++ < 120);
+  }
+
+  function runFast(untilNext) {
+    if (busy || !M.loaded || M.halted) return;
+    stopAuto(); demoRunning = false;
+    pushHistory();
+    const r = LMC.run(M, eopts(), untilNext);
+    M = r.state; suppressCue = false;
+    if (r.reason === 'needInput') { showMsg(S.msgs.needInput, 'warn'); shake('in'); } else showMsg(S.msgs.correct, 'ok');
+    render();
+    if (M.halted) setTimeout(showSummary, 300);
+  }
+
+  /* ---------------- undo / redo / load ---------------- */
+  function undo() {
+    if (busy) return; stopAuto(); demoRunning = false;
+    if (!history.length) return showMsg(S.msgs.nothingUndo, 'warn');
+    future.push(M); M = history.pop(); suppressCue = true; aluN = false; selMn = null; buildStorage(); render(); showMsg(S.msgs.undo, 'info');
+  }
+  function redo() {
+    if (busy) return; stopAuto(); demoRunning = false;
+    if (!future.length) return showMsg(S.msgs.nothingRedo, 'warn');
+    history.push(M); M = future.pop(); suppressCue = true; buildStorage(); render(); showMsg(S.msgs.redo, 'info');
+  }
+
+  async function loadProgram(prog, keepTray = false) {
+    if (busy) return false;
+    const a = LMC.assemble(prog.src);
+    if (!a.ok) { showMsg(a.errors.map(e => F(S.asm.line, { n: e.line, msg: e.msg })).join(' · '), 'err'); return false; }
+    stopAuto(); demoRunning = false;
+    pushHistory();
+    const ns = LMC.load(M, a.cells, prog.name, prog.src, keepTray);
+    if (!keepTray) ns.input = (prog.inputs || []).slice();
+    busy = true; render();
+    await animateLoad(a.cells, a.size);
+    busy = false;
+    M = ns; suppressCue = true; lastAnswer = ''; selMn = null; aluN = false;
+    buildStorage(); render();
+    showMsg(F(S.msgs.loaded, { name: prog.name }), 'ok');
+    scheduleAuto();
+    return true;
+  }
+  function resetMachine() {
+    if (busy || !M.loaded) return; stopAuto(); demoRunning = false;
+    pushHistory(); M = LMC.reset(M); suppressCue = true; lastAnswer = ''; render(); showMsg(S.msgs.reset, 'info');
+  }
+  function clearAll() {
+    if (busy) return; stopAuto(); demoRunning = false;
+    pushHistory(); M = LMC.newMachine(); suppressCue = true; lastAnswer = ''; buildStorage(); render(); showMsg(S.msgs.cleared, 'info');
+  }
+
+  /* ---------------- dialogs ---------------- */
+  function openDlg(id) { stopAuto(); $(id).classList.remove('hidden'); }
+  function closeDlg(id) { $(id).classList.add('hidden'); if (!anyDialog()) scheduleAuto(); }
+  function closeTop() { const open = $$('.overlay').filter(o => !o.classList.contains('hidden')); if (open.length) closeDlg(open[open.length - 1].id); }
+
+  function showSummary() {
+    const illegal = !!M.haltMsg;
+    $('sum-title').textContent = illegal ? S.prompts.illegalStop : S.summary.title;
+    const errs = ROLES.filter(r => M.errors[r]).map(r => `<tr><td>${esc(roleWho(r))}</td><td>${M.errors[r]}</td></tr>`).join('');
+    $('sum-body').innerHTML =
+      (illegal ? `<p class="warn">${esc(M.haltMsg)}</p>` : '') +
+      `<h3>${S.summary.output}</h3><p class="mono" style="font-size:40px;margin:4px 0">${M.output.map(p3).join('  ') || '—'}</p>` +
+      `<h3>${S.summary.stats}</h3><table><tr><td>${S.counters.instr}</td><td>${M.count.instr}</td></tr><tr><td>${S.counters.micro}</td><td>${M.count.micro}</td></tr><tr><td>${S.counters.clicks}</td><td>${M.count.clicks}</td></tr></table>` +
+      `<h3>${S.summary.errors}</h3>` + (errs ? `<table>${errs}</table>` : `<p>${S.summary.noErrors}</p>`);
+    openDlg('dlg-summary');
+  }
+
+  // teacher menu
+  function syncMenu() {
+    $$('#m-mode button').forEach(b => b.classList.toggle('sel', b.dataset.mode === settings.mode));
+    $('m-played').innerHTML = ROLES.map(r => `<label><input type="checkbox" data-played="${r}" ${settings.played.includes(r) ? 'checked' : ''}> ${S.roles[r]}</label>`).join('');
+    $('m-played').classList.toggle('hidden', settings.mode !== 'assist'); $('assist-note').classList.toggle('hidden', settings.mode !== 'assist');
+    $('m-prog').innerHTML = allPrograms().map((p, i) => `<option value="${i}" ${p.name === M.program.name ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+    $$('#m-preset button').forEach(b => b.classList.toggle('sel', +b.dataset.preset === settings.preset));
+    $('m-names').innerHTML = PRESETS[settings.preset].map(g => {
+      const key = g.join('+');
+      return `<div class="row"><label>${g.map(r => S.roles[r]).join(' + ')}</label><input class="text" data-name="${key}" value="${esc(settings.names[key] || '')}" placeholder="student name"></div>`;
+    }).join('');
+    $('s-hints').checked = settings.hints; $('s-sound').checked = settings.sound;
+    $('s-fastwheel').checked = settings.fastWheel; $('s-crowd').checked = settings.crowd; $('s-editmem').checked = settings.editMem;
+    $('s-space').checked = settings.spaceKey;
+    $$('#s-speed button').forEach(b => b.classList.toggle('sel', +b.dataset.speed === settings.speed));
+  }
+  function openMenu() { syncMenu(); openDlg('dlg-menu'); }
+
+  function setupMenu() {
+    const mb = $('menu-btn'); let holdT = null;
+    const start = () => { if (holdT) return; mb.classList.add('holding'); holdT = setTimeout(() => { holdT = null; mb.classList.remove('holding'); menuOpenedByHold = true; openMenu(); }, 1000); };
+    const end = () => { clearTimeout(holdT); holdT = null; mb.classList.remove('holding'); };
+    mb.addEventListener('pointerdown', e => { e.preventDefault(); start(); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => mb.addEventListener(t, end));
+    mb.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); e.stopPropagation(); start(); } });
+    mb.addEventListener('keyup', e => { if (e.key === 'Enter' || e.key === ' ') end(); });
+    mb.addEventListener('click', () => { if (!menuOpenedByHold) showMsg('Hold ☰ for 1 second to open the teacher menu', 'info'); menuOpenedByHold = false; });
+    mb.addEventListener('contextmenu', e => e.preventDefault());
+
+    $('m-mode').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      settings.mode = b.dataset.mode; demoRunning = false; saveSettings(); syncMenu(); render();
+    });
+    $('m-played').addEventListener('change', e => {
+      const r = e.target.dataset.played; if (!r) return;
+      settings.played = e.target.checked ? [...new Set([...settings.played, r])] : settings.played.filter(x => x !== r);
+      saveSettings(); render();
+    });
+    $('m-preset').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.preset = +b.dataset.preset; saveSettings(); syncMenu(); render(); });
+    $('m-names').addEventListener('input', e => { const key = e.target.dataset.name; if (!key) return; settings.names[key] = e.target.value.trim(); saveSettings(); render(); });
+    $('m-load').addEventListener('click', () => { const p = allPrograms()[+$('m-prog').value]; if (p) { closeDlg('dlg-menu'); loadProgram(p); } });
+    $('m-editor').addEventListener('click', () => openEditor());
+    $('m-reset').addEventListener('click', () => { closeDlg('dlg-menu'); resetMachine(); });
+    $('m-clear').addEventListener('click', () => { closeDlg('dlg-menu'); clearAll(); });
+    $('m-undo').addEventListener('click', undo);
+    $('m-redo').addEventListener('click', redo);
+    $('m-skip').addEventListener('click', () => { closeDlg('dlg-menu'); runFast(true); });
+    $('m-run').addEventListener('click', () => { closeDlg('dlg-menu'); runFast(false); });
+    const tog = (id, key) => $(id).addEventListener('change', e => { settings[key] = e.target.checked; saveSettings(); render(); });
+    tog('s-hints', 'hints'); tog('s-sound', 'sound'); tog('s-fastwheel', 'fastWheel'); tog('s-crowd', 'crowd'); tog('s-editmem', 'editMem'); tog('s-space', 'spaceKey');
+    $('s-speed').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings.speed = +b.dataset.speed; saveSettings(); syncMenu(); });
+    $('m-overview').addEventListener('click', openOverview);
+    $('m-full').addEventListener('click', toggleFull);
+    $('m-tests').addEventListener('click', openTests);
+  }
+
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    } catch (e) { /* not supported */ }
+  }
+
+  // RAM overview
+  function openOverview() {
+    const edit = settings.editMem;
+    $('ram-grid').innerHTML = M.ram.map((v, a) =>
+      `<div class="rc${a === M.head ? ' h' : ''}${a === M.mar ? ' m' : ''}"><small>${p2(a)}</small>${edit ? `<input data-addr="${a}" value="${p3(v)}" maxlength="3" inputmode="numeric">` : `<b>${p3(v)}</b>`}</div>`).join('');
+    $('ram-note').textContent = edit ? 'Edit memory is ON – type a value 0–999 and press Enter or leave the box.' : 'Read-only. Turn on “Edit memory” in the teacher menu to change cells. Yellow = wheel head, blue = MAR.';
+    openDlg('dlg-ram');
+  }
+  $('ram-grid').addEventListener('change', e => {
+    const a = e.target.dataset.addr; if (a == null) return;
+    const v = LMC.num(e.target.value);
+    if (isNaN(v) || v > 999) { e.target.value = p3(M.ram[a]); return; }
+    pushHistory(); M = LMC.poke(M, +a, v); e.target.value = p3(v); render();
+  });
+
+  // editor
+  let edTimer = null;
+  function openEditor(prog) {
+    const p = prog || (M.loaded ? { name: M.program.name, src: M.program.src } : LMC.SAMPLES[0]);
+    $('ed-name').value = p.name; $('ed-src').value = p.src;
+    $('ed-open').innerHTML = `<option value="">Open…</option>` + allPrograms().map((q, i) => `<option value="${i}">${esc(q.name)}</option>`).join('');
+    edAssemble(); openDlg('dlg-editor'); $('ed-src').focus();
+  }
+  function edAssemble() {
+    const a = LMC.assemble($('ed-src').value);
+    $('ed-listing').innerHTML = `<table>${a.listing.map(r => `<tr><td>${p2(r.addr)}</td><td class="c">${p3(r.code)}</td><td>${esc(r.src)}</td></tr>`).join('')}</table>`;
+    $('ed-errors').innerHTML = a.errors.map(e => esc(F(S.asm.line, { n: e.line, msg: e.msg }))).join('<br>') || (a.listing.length ? `✓ ${a.size} cells` : '');
+    return a;
+  }
+  function setupEditor() {
+    $('ed-src').addEventListener('input', () => { clearTimeout(edTimer); edTimer = setTimeout(edAssemble, 250); });
+    $('ed-src').addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '      '); } });
+    $('ed-asm').addEventListener('click', edAssemble);
+    $('ed-open').addEventListener('change', e => { const p = allPrograms()[+e.target.value]; if (p) { $('ed-name').value = p.name; $('ed-src').value = p.src; edAssemble(); } e.target.value = ''; });
+    $('ed-load').addEventListener('click', async () => {
+      if (!edAssemble().ok) return;
+      const name = $('ed-name').value.trim() || 'Untitled';
+      $$('.overlay').forEach(o => o.classList.add('hidden'));
+      await loadProgram({ name, src: $('ed-src').value }, true);
+    });
+    $('ed-save').addEventListener('click', () => {
+      if (!edAssemble().ok) return;
+      let name = $('ed-name').value.trim() || 'Untitled';
+      if (LMC.SAMPLES.some(p => p.name === name)) name += ' (copy)';
+      const list = userPrograms().filter(p => p.name !== name);
+      list.push({ name, src: $('ed-src').value });
+      if (saveUserPrograms(list)) { $('ed-name').value = name; $('ed-errors').textContent = F(S.msgs.saved, { name }); buildStorage(); }
+      else $('ed-errors').textContent = S.msgs.storageFail;
+    });
+    $('ed-export').addEventListener('click', () => {
+      const name = ($('ed-name').value.trim() || 'program').replace(/[^\w\- ]+/g, '_');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([$('ed-src').value], { type: 'text/plain' }));
+      a.download = name + '.lmc'; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+    $('ed-import').addEventListener('click', () => $('ed-file').click());
+    $('ed-file').addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { $('ed-src').value = String(r.result); $('ed-name').value = f.name.replace(/\.(lmc|txt)$/i, ''); edAssemble(); };
+      r.readAsText(f); e.target.value = '';
+    });
+  }
+
+  // self-tests
+  function openTests() {
+    const res = LMC.runTests();
+    const bad = res.filter(r => !r.ok).length;
+    $('tests-body').innerHTML = `<div class="${bad ? 'f' : 'p'}" style="font-size:24px">${res.length - bad}/${res.length} passed</div>` +
+      res.map(r => `<div class="${r.ok ? 'p' : 'f'}">${r.ok ? '✓' : '✗'} ${esc(r.name)}${r.ok ? '' : ' — ' + esc(r.err)}</div>`).join('');
+    console.table(res);
+    openDlg('dlg-tests');
+  }
+
+  /* ---------------- events ---------------- */
+  function setupEvents() {
+    stage.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      const chip = e.target.closest('[data-chip]');
+      if (chip) return removeInput(+chip.dataset.chip);
+      if (!b || b.closest('.overlay')) return;
+      if (b.dataset.act) onAct(b.dataset.act, b);
+      else if (b.dataset.mn) onPickMn(b.dataset.mn);
+      else if (b.dataset.prog != null) {
+        if (M.loaded && M.started && !M.halted) { shake('storage'); showMsg(S.msgs.loadLocked, 'warn'); return; }
+        loadProgram(allPrograms()[+b.dataset.prog]);
+      } else if (b.dataset.del != null) {
+        const p = allPrograms()[+b.dataset.del];
+        if (p && !p.builtin && confirm(`Delete “${p.name}” from Storage?`)) { saveUserPrograms(userPrograms().filter(q => q.name !== p.name)); buildStorage(); }
+      }
+    });
+    $('b-hint').addEventListener('click', () => showMsg(LMC.hint(M, LMC.current(M, eopts())), 'info'));
+    $('b-answer').addEventListener('click', () => showMsg(LMC.answer(M, LMC.current(M, eopts())), 'info'));
+    $('demo-play').addEventListener('click', () => { if (!M.loaded || M.halted) return; demoRunning = !demoRunning; render(); if (demoRunning) scheduleAuto(200); else stopAuto(); });
+    $('demo-step').addEventListener('click', () => { demoRunning = false; render(); spaceStep(); });
+    $('demo-speed').addEventListener('input', e => { settings.demoDelay = 2650 - +e.target.value; saveSettings(); });
+
+    $$('.overlay').forEach(o => {
+      o.addEventListener('click', e => { if (e.target === o || e.target.closest('[data-close]')) closeDlg(o.id); });
+    });
+
+    const enter = { 'in-pc': 'pc.set', 'in-alu': 'alu.compute', 'in-dec': 'ir.decode', 'in-io': 'io.add' };
+    Object.entries(enter).forEach(([id, act]) => $(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); onAct(act, $(id)); }
+    }));
+    // inputs on inactive components refuse focus-typing
+    ['in-pc', 'in-alu', 'in-dec'].forEach(id => $(id).addEventListener('pointerdown', e => {
+      const comp = $(id).closest('.comp').dataset.comp, req = LMC.current(M, eopts());
+      if (!req || req.comp !== comp) { e.preventDefault(); notTurn(comp, req); }
+    }));
+
+    document.addEventListener('keydown', e => {
+      const tag = e.target.tagName, typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      const key = e.key.toLowerCase();
+      if (e.key === 'Escape') { closeTop(); return; }
+      if ((e.ctrlKey || e.metaKey) && key === 'z' && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+      if ((e.ctrlKey || e.metaKey) && key === 'y' && !typing) { e.preventDefault(); redo(); return; }
+      if (typing || anyDialog() || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === ' ') { if (settings.spaceKey) { e.preventDefault(); spaceStep(); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); moveWheel(-1, true); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); moveWheel(1, true); }
+      else if (key === 'f') toggleFull();
+    });
+    addEventListener('resize', fit);
+  }
+
+  /* ---------------- start ---------------- */
+  fit();
+  build();
+  setupWheel(); setupMenu(); setupEditor(); setupEvents();
+  render();
+  requestAnimationFrame(() => { drawWires(); });
+  showMsg(S.prompts.empty, 'info');
+  if (location.hash === '#tests') openTests();
+  window.LMCUI = { get state() { return M; }, paths: PATHS, loadProgram, undo, redo, performExpected, runFast, render, settings };
+})();
+</script>
+</body>
+</html>
